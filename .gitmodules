@@ -1,0 +1,3 @@
+[submodule "Sources/ScummVMEngine"]
+	path = Sources/ScummVMEngine
+	url = https://github.com/scummvm/scummvm.git

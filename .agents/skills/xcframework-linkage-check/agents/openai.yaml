@@ -1,0 +1,4 @@
+interface:
+  display_name: "XCFramework Linkage Check"
+  short_description: "Resolve linker and binary slice problems."
+  default_prompt: "Use $xcframework-linkage-check to diagnose and fix the current linker or XCFramework slice error in this package."

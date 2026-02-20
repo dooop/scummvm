@@ -1,0 +1,4 @@
+interface:
+  display_name: "ScummVM Override Workflow"
+  short_description: "Create safe override translation units."
+  default_prompt: "Use $scummvm-override-workflow to replace an unbuildable upstream source with a minimal override and synchronized Package.swift exclusion."

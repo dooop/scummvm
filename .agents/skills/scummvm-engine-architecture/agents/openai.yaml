@@ -1,0 +1,4 @@
+interface:
+  display_name: "ScummVM Engine Architecture"
+  short_description: "Understand wrapper-to-engine architecture flow."
+  default_prompt: "Use $scummvm-engine-architecture to map responsibilities and impact before changing this wrapper's engine integration."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "ScummVM Submodule Sync"
+  short_description: "Sync upstream submodule safely."
+  default_prompt: "Use $scummvm-submodule-sync to advance Sources/ScummVMEngine and reconcile override and exclusion drift safely."

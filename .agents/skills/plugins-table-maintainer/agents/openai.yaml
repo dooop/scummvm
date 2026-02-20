@@ -1,0 +1,4 @@
+interface:
+  display_name: "Plugins Table Maintainer"
+  short_description: "Maintain ScummVM plugin table overrides."
+  default_prompt: "Use $plugins-table-maintainer to safely update plugin and detection table overrides for this ScummVM wrapper."

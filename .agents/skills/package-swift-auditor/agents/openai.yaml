@@ -1,0 +1,4 @@
+interface:
+  display_name: "Package.swift Auditor"
+  short_description: "Audit manifest target and link consistency."
+  default_prompt: "Use $package-swift-auditor to validate Package.swift target membership, exclusions, binary targets, and platform conditions before shipping changes."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "ObjC++ Bridge Lifecycle"
+  short_description: "Keep SwiftUI and engine lifecycle in sync."
+  default_prompt: "Use $objcxx-bridge-lifecycle to update SwiftUI and Objective-C++ engine lifecycle behavior safely across Apple platforms."

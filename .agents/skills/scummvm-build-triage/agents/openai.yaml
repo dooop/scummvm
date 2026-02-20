@@ -1,0 +1,4 @@
+interface:
+  display_name: "ScummVM Build Triage"
+  short_description: "Triage and fix Swift package build failures."
+  default_prompt: "Use $scummvm-build-triage to diagnose and fix the current build failure with minimal wrapper-side changes."

@@ -470,8 +470,9 @@ let package = Package(
         "ScummVMEngine/backends/platform/sdl/macosx/macosx_wrapper.mm",
       ],
       resources: [
-        // Platform-specific metadata/assets
-        .copy("ScummVMEngine/dists/macosx")
+        // Only copy the Sparkle DSA key; copying the full macOS app template
+        // embeds nested Info.plist files that fail App Store/TestFlight validation.
+        .copy("ScummVMEngine/dists/macosx/dsa_pub.pem")
       ],
       publicHeadersPath: "ScummVMmacOS/include",
       cSettings: [

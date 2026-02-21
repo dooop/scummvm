@@ -40,6 +40,15 @@ static void SCVMUpsertOption(NSMutableArray<NSString *> *arguments, NSString *op
     }
 }
 
+static BOOL SCVMArgumentsContainValue(NSArray<NSString *> *arguments, NSString *value) {
+    for (NSString *argument in arguments) {
+        if ([argument isEqualToString:value]) {
+            return YES;
+        }
+    }
+    return NO;
+}
+
 static NSString *SCVMFindBundleRelativeDirectoryContainingFile(NSString *fileName) {
     NSString *root = NSBundle.mainBundle.resourcePath;
     if (root.length == 0) {
@@ -83,7 +92,7 @@ static NSString *SCVMAppBundleVirtualPath(NSString *relativeDirectory) {
     return [@"appbundle:/" stringByAppendingString:relativeDirectory];
 }
 
-static NSMutableArray<NSString *> *SCVMBuildRuntimeArguments(void) {
+static NSMutableArray<NSString *> *SCVMBuildRuntimeArguments(NSString * _Nullable gamePath) {
     NSMutableArray<NSString *> *arguments = [NSProcessInfo processInfo].arguments.mutableCopy;
     NSString *selectedGuiTheme = nil;
 
@@ -122,6 +131,14 @@ static NSMutableArray<NSString *> *SCVMBuildRuntimeArguments(void) {
 
     if (extraDirectory.length > 0) {
         SCVMUpsertOption(arguments, @"--extrapath", extraPath);
+    }
+
+    NSString *trimmedGamePath = [gamePath stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+    if (trimmedGamePath.length > 0) {
+        SCVMUpsertOption(arguments, @"--path", trimmedGamePath);
+        if (!SCVMArgumentsContainValue(arguments, @"--auto-detect")) {
+            [arguments addObject:@"--auto-detect"];
+        }
     }
 
     if (themePath.length > 0) {
@@ -180,6 +197,10 @@ static NSMutableArray<NSString *> *SCVMBuildRuntimeArguments(void) {
 }
 
 - (void)start {
+    [self startWithGamePath:nil];
+}
+
+- (void)startWithGamePath:(NSString * _Nullable)gamePath {
     @synchronized (self) {
         if (_runState != SCVMEngineRunStateStopped) {
             return;
@@ -208,9 +229,10 @@ static NSMutableArray<NSString *> *SCVMBuildRuntimeArguments(void) {
         return;
     }
 
+    NSString *launchGamePath = [gamePath copy];
     dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
         // Invoke the actual ScummVM main entry point:
-        NSArray<NSString *> *arguments = SCVMBuildRuntimeArguments();
+        NSArray<NSString *> *arguments = SCVMBuildRuntimeArguments(launchGamePath);
         int argc = (int)arguments.count;
         char **argv = (char **)malloc(sizeof(char *) * (argc + 1));
         

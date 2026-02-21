@@ -12,6 +12,7 @@
 + (instancetype)sharedContext;
 - (void)setupIfNeeded;
 - (void)start;
+- (void)startWithGamePath:(nullable NSString *)gamePath;
 - (void)stop;
 
 @end

@@ -26,6 +26,30 @@ static BOOL SCVMArgumentsContainOption(NSArray<NSString *> *arguments, NSString 
     return NO;
 }
 
+static BOOL SCVMArgumentsContainValue(NSArray<NSString *> *arguments, NSString *value) {
+    for (NSString *argument in arguments) {
+        if ([argument isEqualToString:value]) {
+            return YES;
+        }
+    }
+    return NO;
+}
+
+static void SCVMUpsertOption(NSMutableArray<NSString *> *arguments, NSString *option, NSString *value) {
+    NSString *prefix = [option stringByAppendingString:@"="];
+    NSIndexSet *existing = [arguments indexesOfObjectsPassingTest:^BOOL(NSString *obj, NSUInteger idx, BOOL *stop) {
+        return [obj isEqualToString:option] || [obj hasPrefix:prefix];
+    }];
+
+    if (existing.count > 0) {
+        [arguments removeObjectsAtIndexes:existing];
+    }
+
+    if (value.length > 0) {
+        [arguments addObject:[option stringByAppendingFormat:@"=%@", value]];
+    }
+}
+
 static NSString *SCVMFindAbsoluteDirectoryContainingFile(NSString *fileName) {
     NSString *root = NSBundle.mainBundle.resourcePath;
     if (root.length == 0) {
@@ -53,7 +77,7 @@ static NSString *SCVMFindAbsoluteDirectoryContainingFile(NSString *fileName) {
     return nil;
 }
 
-static NSMutableArray<NSString *> *SCVMBuildRuntimeArguments(void) {
+static NSMutableArray<NSString *> *SCVMBuildRuntimeArguments(NSString * _Nullable gamePath) {
     NSMutableArray<NSString *> *arguments = [NSProcessInfo processInfo].arguments.mutableCopy;
 
     NSString *themePath = SCVMFindAbsoluteDirectoryContainingFile(@"scummmodern.zip");
@@ -69,6 +93,14 @@ static NSMutableArray<NSString *> *SCVMBuildRuntimeArguments(void) {
 
     if (extraPath.length > 0 && !SCVMArgumentsContainOption(arguments, @"--extrapath")) {
         [arguments addObject:[@"--extrapath=" stringByAppendingString:extraPath]];
+    }
+
+    NSString *trimmedGamePath = [gamePath stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+    if (trimmedGamePath.length > 0) {
+        SCVMUpsertOption(arguments, @"--path", trimmedGamePath);
+        if (!SCVMArgumentsContainValue(arguments, @"--auto-detect")) {
+            [arguments addObject:@"--auto-detect"];
+        }
     }
 
     return arguments;
@@ -130,6 +162,10 @@ typedef NS_ENUM(NSInteger, SCVMEngineRunState) {
 }
 
 - (void)start {
+    [self startWithGamePath:nil];
+}
+
+- (void)startWithGamePath:(NSString * _Nullable)gamePath {
     @synchronized (self) {
         if (_runState != SCVMEngineRunStateStopped) {
             return;
@@ -153,8 +189,9 @@ typedef NS_ENUM(NSInteger, SCVMEngineRunState) {
         return;
     }
 
+    NSString *launchGamePath = [gamePath copy];
     dispatch_async(dispatch_get_main_queue(), ^{
-        NSArray<NSString *> *arguments = SCVMBuildRuntimeArguments();
+        NSArray<NSString *> *arguments = SCVMBuildRuntimeArguments(launchGamePath);
         int argc = (int)arguments.count;
         char **argv = (char **)malloc(sizeof(char *) * (argc + 1));
         for (int i = 0; i < argc; i++) {

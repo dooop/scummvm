@@ -16,14 +16,17 @@ import SwiftUI
 #endif
 
 public struct ScummVM: View {
-  public init() {
+  private let gamePath: String?
+
+  public init(gamePath: String? = nil) {
+    self.gamePath = gamePath
     _ = ScummVMEngineSharedInstance()
   }
 
   public var body: some View {
     ScummVMView()
       .onAppear {
-        ScummVMEngineSharedInstance().start()
+        ScummVMEngineSharedInstance().start(gamePath: gamePath)
       }
       .onDisappear {
         ScummVMEngineSharedInstance().stop()

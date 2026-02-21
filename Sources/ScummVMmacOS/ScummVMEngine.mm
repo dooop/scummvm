@@ -25,8 +25,12 @@ ScummVMEngine *ScummVMEngineSharedInstance(void) {
 }
 
 - (void)start {
+    [self startWithGamePath:nil];
+}
+
+- (void)startWithGamePath:(NSString * _Nullable)gamePath {
     [[ScummVMAppContext sharedContext] setupIfNeeded];
-    [[ScummVMAppContext sharedContext] start];
+    [[ScummVMAppContext sharedContext] startWithGamePath:gamePath];
 }
 
 - (void)stop {

@@ -23,6 +23,7 @@ FOUNDATION_EXPORT ScummVMEngine *ScummVMEngineSharedInstance(void);
 
 + (ScummVMEngine *)sharedInstance;
 - (void)start;
+- (void)startWithGamePath:(nullable NSString *)gamePath NS_SWIFT_NAME(start(gamePath:));
 - (void)stop;
 
 @end

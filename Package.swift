@@ -1,6 +1,26 @@
 // swift-tools-version:6.0
 import PackageDescription
 
+// Pin binary assets to the dedicated GitHub Release that hosts XCFramework zips.
+// Update this only when the binary zips (and checksums below) change.
+let scummVMBinaryReleaseBaseURL = "https://github.com/dooop/swift-scummvm/releases/download/0.2.0"
+
+func scummVMBinaryTarget(name: String,
+                  checksum: String,
+                  baseURL: String? = nil) -> Target {
+    if let baseURL {
+        let url = "\(baseURL)/\(name).xcframework.zip"
+        return .binaryTarget(
+            name: name,
+            url: url,
+            checksum: checksum)
+    } else {
+        return .binaryTarget(
+            name: name,
+            path: "Frameworks/\(name).xcframework")
+    }
+}
+
 let package = Package(
   name: "swift-scummvm",
   platforms: [
@@ -906,101 +926,101 @@ let package = Package(
         .copy("../ScummVMEngine/dists/tvos/PrivacyInfo.xcprivacy"),
       ]
     ),
-    .binaryTarget(
+    scummVMBinaryTarget(
       name: "a52",
-      path: "Frameworks/a52.xcframework"
+      checksum: "d389d7055deb36bf779853d51f6dbd653d91dbcb7fee382786b969de8b2081db"
     ),
-    .binaryTarget(
+    scummVMBinaryTarget(
       name: "bz2",
-      path: "Frameworks/bz2.xcframework"
+      checksum: "2b16e6713db951acb6e06da11145469115a6f0650237d1787a8f3e7f0bdc12ff"
     ),
-    .binaryTarget(
+    scummVMBinaryTarget(
       name: "curl",
-      path: "Frameworks/curl.xcframework"
+      checksum: "6e6977bad5c44a97712655c76fb81eb56c02aab3ca8c29c728bf3dd0269df8dd"
     ),
-    .binaryTarget(
+    scummVMBinaryTarget(
       name: "faad",
-      path: "Frameworks/faad.xcframework"
+      checksum: "ec84329b992724c799ad8aee1071c5b8f6382d8c540e967785f96edf9bb87672"
     ),
-    .binaryTarget(
+    scummVMBinaryTarget(
       name: "ffi",
-      path: "Frameworks/ffi.xcframework"
+      checksum: "0ada0e580efc9e5c7ca0c17a04499bd25654709dfc91731fd835ec26b04815ad"
     ),
-    .binaryTarget(
+    scummVMBinaryTarget(
       name: "FLAC",
-      path: "Frameworks/FLAC.xcframework"
+      checksum: "aa3c469bfb104f6bb8717d6033cda99c27f16d16031e19e1e2491678d8bb94b6"
     ),
-    .binaryTarget(
+    scummVMBinaryTarget(
       name: "fluidsynth",
-      path: "Frameworks/fluidsynth.xcframework"
+      checksum: "864ae3f5eaef39c43ceb8b9ad7cfa242010ad20d7756f3d2340b66c9b0e18fa4"
     ),
-    .binaryTarget(
+    scummVMBinaryTarget(
       name: "freetype",
-      path: "Frameworks/freetype.xcframework"
+      checksum: "71c6c65222daeaf345bbb316fe70423d0db369f0820cdb81dabe68287463c78e"
     ),
-    .binaryTarget(
+    scummVMBinaryTarget(
       name: "fribidi",
-      path: "Frameworks/fribidi.xcframework"
+      checksum: "15bf1673a3e706aa46f5a71eae585be3a20cf2402e2d03340506d05df47c18e0"
     ),
-    .binaryTarget(
+    scummVMBinaryTarget(
       name: "gif",
-      path: "Frameworks/gif.xcframework"
+      checksum: "a0463ef3ba12c6fbafe223d2ae063d43dd56c94dbbb8e36f041c6c5072085557"
     ),
-    .binaryTarget(
+    scummVMBinaryTarget(
       name: "glib-2.0",
-      path: "Frameworks/glib-2.0.xcframework"
+      checksum: "41a33cdc196bffd972752cd0c16b06b5daf60fe4aa1b123f2e0d08489ea22040"
     ),
-    .binaryTarget(
+    scummVMBinaryTarget(
       name: "intl",
-      path: "Frameworks/intl.xcframework"
+      checksum: "bc9c91956f78d0830b653efc98a38f96adfcc2a049b6bb59f720e401efe82bf1"
     ),
-    .binaryTarget(
+    scummVMBinaryTarget(
       name: "jpeg",
-      path: "Frameworks/jpeg.xcframework"
+      checksum: "6a83eef6a7c885e05fedf9870538396a743d7dd9ded6b637dddc40d09c82d749"
     ),
-    .binaryTarget(
+    scummVMBinaryTarget(
       name: "mad",
-      path: "Frameworks/mad.xcframework"
+      checksum: "bf040e3ff3d11a612d70d7aa37275d0b1c1a86549ed9178ec46b693ac7c92048"
     ),
-    .binaryTarget(
+    scummVMBinaryTarget(
       name: "mikmod",
-      path: "Frameworks/mikmod.xcframework"
+      checksum: "363f6cb9a6b269636245b852f2f15242bef3255b69b9bea9ed2a1628ba628bd7"
     ),
-    .binaryTarget(
+    scummVMBinaryTarget(
       name: "mpeg2",
-      path: "Frameworks/mpeg2.xcframework"
+      checksum: "4b883dba8c5ef81669a5ee5b8bcfc773d2c2c1fdd17a750d0bbcabcdcdbb7050"
     ),
-    .binaryTarget(
+    scummVMBinaryTarget(
       name: "ogg",
-      path: "Frameworks/ogg.xcframework"
+      checksum: "d78d39567e53f94fdbee93d21065d07b96f35f099e6a5c17a5c1d5f58dfbb445"
     ),
-    .binaryTarget(
+    scummVMBinaryTarget(
       name: "png",
-      path: "Frameworks/png.xcframework"
+      checksum: "a27e1a1a7b9d67dc956f5ee8ab83b047b408b1e6b6e1f06f6f52883dfe62f634"
     ),
-    .binaryTarget(
+    scummVMBinaryTarget(
       name: "SDL2_net",
-      path: "Frameworks/SDL2_net.xcframework"
+      checksum: "eb50388fa0aa5a23a1c6476d7bf124003382e344248d2ac6f0dbe4dc010b2c50"
     ),
-    .binaryTarget(
+    scummVMBinaryTarget(
       name: "SDL2",
-      path: "Frameworks/SDL2.xcframework"
+      checksum: "2e2e591f2c1d7af4b465f49ccbe5ddd7f77c14ee1b803027b28a4dc992863f71"
     ),
-    .binaryTarget(
+    scummVMBinaryTarget(
       name: "theoradec",
-      path: "Frameworks/theoradec.xcframework"
+      checksum: "eddf9491aa3042499821a3152e2f4f19f7adf544a4b48a02272b39a423ed674f"
     ),
-    .binaryTarget(
+    scummVMBinaryTarget(
       name: "vorbis",
-      path: "Frameworks/vorbis.xcframework"
+      checksum: "b33a2c7d80f2ac71990ee7a2c79c3a986adb43d39f16520d6d3a4a9fcfad4a30"
     ),
-    .binaryTarget(
+    scummVMBinaryTarget(
       name: "vorbisfile",
-      path: "Frameworks/vorbisfile.xcframework"
+      checksum: "96f5ef4d769390464a8b7a93328985d799bd26a5d583432778fecc5ba8557e67"
     ),
-    .binaryTarget(
+    scummVMBinaryTarget(
       name: "vpx",
-      path: "Frameworks/vpx.xcframework"
+      checksum: "8777c659010e27e158357dde6d418a00af9670df50a608e02b2264e9d61b8a3f"
     ),
   ],
   cLanguageStandard: .c11,

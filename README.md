@@ -16,7 +16,7 @@ Upstream ScummVM repository: [scummvm/scummvm](https://github.com/scummvm/scummv
 - [`ScummVMiOS`](Sources/ScummVMiOS/) and [`ScummVMmacOS`](Sources/ScummVMmacOS/) (ObjC++ targets) provide platform glue.
 - [`ScummVMtvOS`](Sources/ScummVMtvOS/) (Swift target) re-exports `ScummVMiOS` via `@_exported import` and packages tvOS-specific assets (app icons, privacy manifest).
 - [`ScummVMApp`](Sources/ScummVMApp/) (macOS executable target) is a minimal macOS app for development and testing that embeds `ScummVM`.
-- [`Frameworks/`](Frameworks/) contains prebuilt XCFrameworks used by the engine target.
+- Binary XCFramework zips are hosted in GitHub Releases and referenced as remote SwiftPM binary targets in `Package.swift`.
 - [`Sources/ScummVMEngineOverrides/`](Sources/ScummVMEngineOverrides/) contains replacement translation units used when upstream sources need package-specific build fixes.
 
 ## Package targets (from `Package.swift`)
@@ -28,8 +28,8 @@ Source and executable targets:
 - [`ScummVMmacOS`](Sources/ScummVMmacOS/)
 - [`ScummVMtvOS`](Sources/ScummVMtvOS/)
 
-Binary targets:
-- [`a52`](Frameworks/a52.xcframework), [`bz2`](Frameworks/bz2.xcframework), [`curl`](Frameworks/curl.xcframework), [`faad`](Frameworks/faad.xcframework), [`ffi`](Frameworks/ffi.xcframework), [`FLAC`](Frameworks/FLAC.xcframework), [`fluidsynth`](Frameworks/fluidsynth.xcframework), [`freetype`](Frameworks/freetype.xcframework), [`fribidi`](Frameworks/fribidi.xcframework), [`gif`](Frameworks/gif.xcframework), [`glib-2.0`](Frameworks/glib-2.0.xcframework), [`intl`](Frameworks/intl.xcframework), [`jpeg`](Frameworks/jpeg.xcframework), [`mad`](Frameworks/mad.xcframework), [`mikmod`](Frameworks/mikmod.xcframework), [`mpeg2`](Frameworks/mpeg2.xcframework), [`ogg`](Frameworks/ogg.xcframework), [`png`](Frameworks/png.xcframework), [`SDL2_net`](Frameworks/SDL2_net.xcframework), [`SDL2`](Frameworks/SDL2.xcframework), [`theoradec`](Frameworks/theoradec.xcframework), [`vorbis`](Frameworks/vorbis.xcframework), [`vorbisfile`](Frameworks/vorbisfile.xcframework), [`vpx`](Frameworks/vpx.xcframework)
+Binary targets (downloaded from the pinned GitHub Release configured in `Package.swift`, currently `0.2.0`):
+- `a52`, `bz2`, `curl`, `faad`, `ffi`, `FLAC`, `fluidsynth`, `freetype`, `fribidi`, `gif`, `glib-2.0`, `intl`, `jpeg`, `mad`, `mikmod`, `mpeg2`, `ogg`, `png`, `SDL2_net`, `SDL2`, `theoradec`, `vorbis`, `vorbisfile`, `vpx`
 
 Key entry points:
 - `ScummVM` SwiftUI view manages start/stop lifecycle and initializes the shared engine instance.
@@ -40,7 +40,7 @@ Key entry points:
 - Platforms: iOS 14+, tvOS 14+, macOS 12+.
 - Swift tools version: 6.0 (see `Package.swift`).
 - The `ScummVMEngine/` submodule must be initialized.
-- The XCFrameworks under `Frameworks/` must be present and match your target platform.
+- Internet access is required on first package resolve/build so SwiftPM can download the XCFramework zips from the pinned GitHub Release (they are cached locally after download).
 - [ZIPFoundation](https://github.com/weichsel/ZIPFoundation) 0.9.20+ (declared as a Swift Package dependency in `Package.swift`).
 
 ## Setup
@@ -49,7 +49,7 @@ Key entry points:
    git submodule update --init --recursive
    ```
 2. Open the package in Xcode or add it as a Swift Package dependency.
-3. Build for your desired platform target (iOS/tvOS/macOS).
+3. Build for your desired platform target (iOS/tvOS/macOS). SwiftPM will download the XCFramework zip assets from the pinned GitHub Release on first resolve/build.
 
 ## Usage
 
@@ -124,7 +124,7 @@ If you need manual control, you can use `ScummVMView` and call `ScummVMEngineSha
 - macOS does not copy directories; the path is passed directly to the engine.
 
 ## Build notes and troubleshooting
-- The engine target links against the XCFrameworks in `Frameworks/`. If you see missing symbols, verify the XCFrameworks include the platform slice you are building for.
+- The engine target links against remote XCFramework binary targets from the pinned GitHub Release in `Package.swift`. If you see missing symbols, verify the uploaded XCFrameworks include the platform slice you are building for and that the checksums in `Package.swift` match the uploaded zip assets.
 - iOS/tvOS uses the upstream iOS7 backend; macOS uses the SDL backend.
 - `ScummVMtvOS` is a thin Swift re-export of `ScummVMiOS` (`@_exported import ScummVMiOS`) that packages tvOS-specific resources from `ScummVMEngine/dists/tvos` (app icons and privacy manifest). It has no separate ObjC++ glue of its own.
 - `ScummVMEngine` sources are taken from the upstream submodule (`ScummVMEngine/`).

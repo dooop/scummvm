@@ -8,13 +8,14 @@
 ## Structure map
 - `Package.swift` defines Swift Package targets, exclusions, and build flags.
 - `Sources/ScummVMEngine/` is the upstream ScummVM git submodule (do not edit).
-- `Sources/ScummVM/` contains SwiftUI wrappers (`ScummVM`, `ScummVMView`).
+- `Sources/ScummVM/` contains SwiftUI wrappers (`ScummVM`, `ScummVMView`, `ScummVMViewModel`, `ScummVMGamePathResolver`).
 - `Sources/ScummVMEngine/` contains the engine target glue and overrides.
 - `Sources/ScummVMEngineOverrides/` contains replacement translation units for build fixes.
 - `Sources/ScummVMiOS/` and `Sources/ScummVMmacOS/` contain ObjC++ platform glue.
 - `Sources/ScummVMiOS/include/ScummVMEngine.h` and `Sources/ScummVMmacOS/include/ScummVMEngine.h` are the public ObjC APIs.
 - `Sources/ScummVMtvOS/` is a distinct tvOS glue target with its own requirements (not a copy of iOS).
 - `Frameworks/` contains prebuilt XCFramework dependencies.
+- [ZIPFoundation](https://github.com/weichsel/ZIPFoundation) 0.9.20+ is a Swift Package dependency used by `ScummVMGamePathResolver` for archive extraction.
 
 ## Skills
 - `scummvm-build-triage`: Diagnose build failures and choose the minimal fix surface. (`.agents/skills/scummvm-build-triage/SKILL.md`)
@@ -60,10 +61,13 @@
 - tvOS glue (`Sources/ScummVMtvOS/`) has distinct requirements from iOS and must be documented separately as it evolves.
 
 ## Threading and lifecycle (current state)
-- The engine currently runs on the main thread.
-- The goal is to support running the engine on a background thread; do not add main-thread assumptions that would block that migration.
-- The `start`/`stop` SwiftUI lifecycle mechanism is not yet fully implemented and needs to be designed/adapted. Do not treat it as working.
-- When designing glue code, keep thread-crossing explicit and minimal.
+- The `start`/`stop` SwiftUI lifecycle is fully implemented via a state machine in `ScummVMViewModel` (`idle`, `resolvingPath`, `startRequested`, `stopRequested`).
+- Game path resolution runs asynchronously via `ScummVMGamePathResolver` (a Swift `actor`) before the engine starts. Start tokens prevent races on path changes.
+- `ScummVM(gamePath: URL?)` and `ScummVM(gamePath: Binding<URL?>)` are the public API. Nil means open the launcher UI; a non-nil URL is resolved and passed to the engine.
+- Archives (`.zip`, `.scummvm`) are extracted by ZIPFoundation to a platform-specific cache directory before launch. Directories on iOS/tvOS are copied into the sandbox if not already accessible.
+- iOS/tvOS creates UIKit/backend state on the main thread, then runs the engine loop on a background queue.
+- macOS sets up SDL/OSystem and runs `scummvm_main` on the main queue. Moving macOS execution to a background thread is a planned next step; do not add main-thread assumptions that would block that migration.
+- Keep thread-crossing explicit and minimal.
 
 ## Output expectations
 - For reviews, list findings first, ordered by severity, with file links.

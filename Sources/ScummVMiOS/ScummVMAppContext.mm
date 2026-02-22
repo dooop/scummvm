@@ -208,6 +208,8 @@ static NSMutableArray<NSString *> *SCVMBuildRuntimeArguments(NSString * _Nullabl
 
 @implementation ScummVMAppContext {
     SCVMEngineRunState _runState;
+    BOOL _hasPendingStartRequest;
+    NSString *_pendingStartGamePath;
 }
 
 + (instancetype)sharedContext {
@@ -254,15 +256,47 @@ static NSMutableArray<NSString *> *SCVMBuildRuntimeArguments(NSString * _Nullabl
     return _viewController;
 }
 
+- (void)teardownSharedOSystemAndMarkStopped {
+    if ([NSThread isMainThread]) {
+        BOOL hasPendingStartRequest = NO;
+        NSString *pendingStartGamePath = nil;
+        iOS7_destroySharedOSystemInstance();
+        @synchronized (self) {
+            _runState = SCVMEngineRunStateStopped;
+            hasPendingStartRequest = _hasPendingStartRequest;
+            pendingStartGamePath = [_pendingStartGamePath copy];
+            _hasPendingStartRequest = NO;
+            _pendingStartGamePath = nil;
+        }
+
+        if (hasPendingStartRequest) {
+            [self startWithGamePath:pendingStartGamePath];
+        }
+        return;
+    }
+
+    dispatch_sync(dispatch_get_main_queue(), ^{
+        [self teardownSharedOSystemAndMarkStopped];
+    });
+}
+
 - (void)start {
     [self startWithGamePath:nil];
 }
 
 - (void)startWithGamePath:(NSString * _Nullable)gamePath {
+    NSString *queuedGamePath = [gamePath copy];
     @synchronized (self) {
+        if (_runState == SCVMEngineRunStateStopping) {
+            _hasPendingStartRequest = YES;
+            _pendingStartGamePath = queuedGamePath;
+            return;
+        }
         if (_runState != SCVMEngineRunStateStopped) {
             return;
         }
+        _hasPendingStartRequest = NO;
+        _pendingStartGamePath = nil;
         _runState = SCVMEngineRunStateStarting;
     }
 
@@ -284,6 +318,9 @@ static NSMutableArray<NSString *> *SCVMBuildRuntimeArguments(NSString * _Nullabl
         }
     }
     if (!shouldLaunch) {
+        // Startup was canceled after the shared OSystem was built but before the run loop launched.
+        // Tear down synchronously so state only returns to "stopped" after native resources are released.
+        [self teardownSharedOSystemAndMarkStopped];
         return;
     }
 
@@ -307,13 +344,8 @@ static NSMutableArray<NSString *> *SCVMBuildRuntimeArguments(NSString * _Nullabl
         }
         free(argv);
 
-        // Engine has fully exited; destroy the OSystem only now, on the main thread.
-        dispatch_async(dispatch_get_main_queue(), ^{
-            iOS7_destroySharedOSystemInstance();
-            @synchronized (self) {
-                _runState = SCVMEngineRunStateStopped;
-            }
-        });
+        // Engine has fully exited; destroy the OSystem only now.
+        [self teardownSharedOSystemAndMarkStopped];
     });
 }
 
@@ -321,19 +353,17 @@ static NSMutableArray<NSString *> *SCVMBuildRuntimeArguments(NSString * _Nullabl
     SCVMEngineRunState previousState;
     @synchronized (self) {
         previousState = _runState;
+        _hasPendingStartRequest = NO;
+        _pendingStartGamePath = nil;
         if (_runState == SCVMEngineRunStateStopped || _runState == SCVMEngineRunStateStopping) {
             return;
         }
         _runState = SCVMEngineRunStateStopping;
     }
 
-    // If startup was canceled before the run loop launched, immediately reset to stopped.
+    // If startup was canceled before the run loop launched, startWithGamePath: will perform teardown
+    // and transition the state back to stopped once native resources are released.
     if (previousState == SCVMEngineRunStateStarting) {
-        @synchronized (self) {
-            if (_runState == SCVMEngineRunStateStopping) {
-                _runState = SCVMEngineRunStateStopped;
-            }
-        }
         return;
     }
 

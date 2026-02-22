@@ -29,7 +29,7 @@ let package = Package(
     ),
   ],
   dependencies: [
-    .package(url: "https://github.com/weichsel/ZIPFoundation.git", from: "0.9.20"),
+    .package(url: "https://github.com/weichsel/ZIPFoundation.git", from: "0.9.20")
   ],
   targets: [
     .target(
@@ -168,6 +168,7 @@ let package = Package(
         "ScummVMEngine/backends/events/sdl/sdl1-events.cpp",
         "ScummVMEngine/backends/events/ds",
         "ScummVMEngine/backends/events/atari",
+        "ScummVMEngine/backends/events/default/default-events.cpp",
         // SDL3 ImGui backend – we use SDL2
         "ScummVMEngine/backends/imgui/backends/imgui_impl_sdlrenderer3.cpp",
         "ScummVMEngine/backends/imgui/backends/imgui_impl_sdl3.cpp",
@@ -187,6 +188,9 @@ let package = Package(
         "ScummVMEngine/engines/bagel/hodjnpodj/pdq/convert.cpp",
         "ScummVMEngineOverrides/backends/platform/ios7/ios7_video.mm",
         "ScummVMEngineOverrides/backends/platform/ios7/ios7_osys_video.mm",
+        "ScummVMEngineOverrides/backends/platform/ios7/ios7_osys_main.cpp",
+        "ScummVMEngineOverrides/backends/platform/ios7/ios7_osys_events.cpp",
+        "ScummVMEngineOverrides/backends/platform/ios7/ios7_osys_sound.cpp",
         "ScummVMEngine/engines/chewy/main.cpp",
         "ScummVMEngine/engines/glk/alan2/main.cpp",
         "ScummVMEngine/engines/glk/alan3/main.cpp",
@@ -681,9 +685,9 @@ let package = Package(
         "ScummVMiOS/ScummVMIOSBridge.cpp",
         "ScummVMEngine/backends/graphics/ios/ios-graphics.cpp",
         "ScummVMEngine/backends/graphics/ios/renderbuffer.cpp",
-        "ScummVMEngine/backends/platform/ios7/ios7_osys_main.cpp",
-        "ScummVMEngine/backends/platform/ios7/ios7_osys_events.cpp",
-        "ScummVMEngine/backends/platform/ios7/ios7_osys_sound.cpp",
+        "ScummVMEngineOverrides/backends/platform/ios7/ios7_osys_main.cpp",
+        "ScummVMEngineOverrides/backends/platform/ios7/ios7_osys_events.cpp",
+        "ScummVMEngineOverrides/backends/platform/ios7/ios7_osys_sound.cpp",
         "ScummVMEngineOverrides/backends/platform/ios7/ios7_osys_video.mm",
         "ScummVMEngine/backends/platform/ios7/ios7_osys_misc.mm",
         "ScummVMEngine/backends/platform/ios7/ios7_misc.mm",

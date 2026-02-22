@@ -1,15 +1,22 @@
 #define FORBIDDEN_SYMBOL_ALLOW_ALL
 
 #include <assert.h>
+#include <atomic>
 #include <stdio.h>
 #include <unistd.h>
 
 #include "backends/platform/ios7/ios7_osys_main.h"
 #include "base/main.h"
+#include "common/config-manager.h"
+#include "common/events.h"
 #include "common/system.h"
+#include "engines/engine.h"
+
+extern std::atomic<bool> g_scummVMIOSWrapperTimerCallbacksEnabled;
 
 void iOS7_destroySharedOSystemInstance() {
 	if (g_system) {
+		g_scummVMIOSWrapperTimerCallbacksEnabled.store(false, std::memory_order_relaxed);
 		g_system->destroy();
 		g_system = nullptr;
 	}
@@ -17,6 +24,21 @@ void iOS7_destroySharedOSystemInstance() {
 
 void iOS7_quitEngine() {
 	if (g_system) {
+		// Embedded stop requests must not be redirected into the launcher.
+		ConfMan.setBool("gui_return_to_launcher_at_exit", false, Common::ConfigManager::kTransientDomain);
+		ConfMan.setBool("confirm_exit", false, Common::ConfigManager::kTransientDomain);
+
+		if (g_system->getEventManager()) {
+			g_system->getEventManager()->resetReturnToLauncher();
+			g_system->getEventManager()->resetQuit();
+		}
+
+		if (g_engine) {
+			// Many engine loops check Engine::shouldQuit() and honor the internal
+			// _quitRequested flag even before backend events are processed.
+			Engine::quitGame();
+		}
+
 		g_system->quit();
 	}
 }

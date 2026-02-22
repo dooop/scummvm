@@ -41,6 +41,7 @@ Key entry points:
 - Swift tools version: 6.0 (see `Package.swift`).
 - The `ScummVMEngine/` submodule must be initialized.
 - The XCFrameworks under `Frameworks/` must be present and match your target platform.
+- [ZIPFoundation](https://github.com/weichsel/ZIPFoundation) 0.9.20+ (declared as a Swift Package dependency in `Package.swift`).
 
 ## Setup
 1. Initialize the submodule:
@@ -58,7 +59,36 @@ import ScummVM
 
 struct ContentView: View {
 	var body: some View {
+		// No game path — opens the ScummVM launcher UI.
 		ScummVM()
+	}
+}
+```
+
+Pass a game path URL to launch directly into a specific game:
+```swift
+import ScummVM
+
+struct ContentView: View {
+	// Points to a game directory or a .zip / .scummvm archive.
+	let gameURL: URL
+
+	var body: some View {
+		ScummVM(gamePath: gameURL)
+	}
+}
+```
+
+Use a `Binding<URL?>` to change the game at runtime:
+```swift
+import ScummVM
+
+struct ContentView: View {
+	@State private var gameURL: URL? = nil
+
+	var body: some View {
+		ScummVM(gamePath: $gameURL)
+		// Changing gameURL restarts the engine with the new path.
 	}
 }
 ```
@@ -66,7 +96,7 @@ struct ContentView: View {
 `ScummVM` automatically calls `start()` on appear and `stop()` on disappear. The iOS/tvOS runtime ignores repeated `start()` calls while the engine is already running.
 
 ### Lower-level control
-If you need manual control, you can use `ScummVMView` and call `ScummVMEngineSharedInstance().start()` / `stop()` yourself.
+If you need manual control, you can use `ScummVMView` and call `ScummVMEngineSharedInstance().start(gamePath:)` / `stop()` yourself.
 
 - iOS/tvOS: call `ScummVMEngineSharedInstance().ui()` to obtain the `UIViewController` backing the engine UI if you need to embed it manually.
 - macOS: the SDL backend creates and manages its own window. The macOS `ScummVMEngine` API does not expose a `ui()` method; use the `ScummVM` SwiftUI view as the host.
@@ -76,6 +106,22 @@ If you need manual control, you can use `ScummVMView` and call `ScummVMEngineSha
 - macOS savegames are created in the Documents directory under `Savegames/` during engine setup.
 - Theme and engine-data paths are resolved by scanning the app bundle; iOS/tvOS uses `appbundle:/` virtual paths and prefers `scummremastered.zip` when present, while macOS adds `--themepath`, `--iconspath`, and `--extrapath` with absolute bundle paths when needed.
 - ScummVM configuration and game data files follow upstream behavior and are not customized here.
+
+## Game path resolution and archive extraction
+`ScummVMGamePathResolver` (an `actor` in `Sources/ScummVM/`) is responsible for resolving the `gamePath` URL into a concrete directory before the engine starts. Resolution is asynchronous and cancellation-aware.
+
+### Archive extraction (all platforms)
+- Supported archive extensions: `.zip`, `.scummvm`.
+- Archives are extracted via ZIPFoundation to a platform-specific cache directory:
+  - iOS/tvOS: `Documents/ScummVM/ImportedArchives/<name>-<hash>/`
+  - macOS: `Application Support/ScummVM/ImportedArchives/<name>-<hash>/`
+- The extraction is cached by a FNV1a-64 hash of the archive's full path. Re-extraction is skipped if the cached directory already exists and is non-empty.
+- If the archive contains a single top-level subdirectory, the resolver descends into it automatically to locate the actual game root.
+
+### Directory import (iOS/tvOS only)
+- Game directories already within `Documents/` or the app bundle are used in place without copying.
+- Directories outside those locations (e.g. received via the Files app or document picker) are copied to `Documents/ScummVM/ImportedDirectories/<name>-<hash>/`.
+- macOS does not copy directories; the path is passed directly to the engine.
 
 ## Build notes and troubleshooting
 - The engine target links against the XCFrameworks in `Frameworks/`. If you see missing symbols, verify the XCFrameworks include the platform slice you are building for.
@@ -94,10 +140,12 @@ If you need manual control, you can use `ScummVMView` and call `ScummVMEngineSha
 - Capture exact build errors before proposing fixes; prefer minimal wrapper or build-flag changes.
 
 ## Status and next steps
-This wrapper is under active development. Known gaps and suggested next steps:
-- The `start`/`stop` lifecycle is wired up in SwiftUI with run-state guards in ObjC++.
-- iOS/tvOS currently creates UIKit/backend state on the main thread, then runs the engine loop (`iOS7_init`) on a background queue.
-- macOS currently sets up SDL/OSystem and runs `scummvm_main` on the main queue.
+This wrapper is under active development. Current state:
+- The `start`/`stop` lifecycle is fully implemented via a state machine in `ScummVMViewModel` with phases: `idle`, `resolvingPath`, `startRequested`, `stopRequested`.
+- Game path resolution and archive extraction run asynchronously using Swift structured concurrency before the engine starts. Start tokens guard against races when the path changes mid-resolution.
+- iOS/tvOS creates UIKit/backend state on the main thread, then runs the engine loop (`iOS7_init`) on a background queue.
+- macOS sets up SDL/OSystem and runs `scummvm_main` on the main queue.
+- Moving macOS engine execution to a background thread is a known next step; do not add main-thread assumptions that would block that migration.
 - Cross-platform lifecycle/threading behavior is still evolving and not yet unified.
 - Consider a macOS-specific SwiftUI host that can focus or resize the SDL window alongside the empty placeholder view.
 - `ScummVMApp` is macOS-only; a tvOS/iOS equivalent app target may be useful for standalone testing.

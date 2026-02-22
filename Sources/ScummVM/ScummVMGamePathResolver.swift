@@ -48,7 +48,21 @@ actor ScummVMGamePathResolver {
     }
 
     guard Self.supportedArchiveExtensions.contains(sourceURL.pathExtension.lowercased()) else {
-      return sourceURL
+      do {
+        if Task.isCancelled {
+          return sourceURL
+        }
+
+        let importedFileURL = try importFileIfNeeded(at: sourceURL, using: fileManager)
+        guard try isUsableGamePath(importedFileURL, using: fileManager) else {
+          print("ScummVM: Imported file path missing at \(importedFileURL.path)")
+          return sourceURL
+        }
+        return importedFileURL
+      } catch {
+        print("ScummVM: Failed to import file at \(sourceURL.path): \(error)")
+        return sourceURL
+      }
     }
 
     do {
@@ -94,6 +108,34 @@ actor ScummVMGamePathResolver {
     return extractedDirectory
   }
 
+  private func importFileIfNeeded(at sourceURL: URL, using fileManager: FileManager) throws -> URL {
+    if try isManagedLaunchPath(sourceURL, using: fileManager) {
+      return sourceURL
+    }
+
+    let importRoot = try importedFilesRootDirectory(using: fileManager)
+    let destination = importRoot.appendingPathComponent(
+      Self.importedFileName(for: sourceURL),
+      isDirectory: false
+    )
+
+    if fileManager.fileExists(atPath: destination.path) {
+      if try isUsableGamePath(destination, using: fileManager) {
+        return destination
+      }
+
+      try? fileManager.removeItem(at: destination)
+    }
+
+    try fileManager.copyItem(at: sourceURL, to: destination)
+
+    if !(try isUsableGamePath(destination, using: fileManager)) {
+      throw CocoaError(.fileNoSuchFile)
+    }
+
+    return destination
+  }
+
   #if os(iOS) || os(tvOS)
     private func importDirectoryIfNeeded(at sourceURL: URL, using fileManager: FileManager) throws
       -> URL
@@ -129,19 +171,31 @@ actor ScummVMGamePathResolver {
       try importedContentRootDirectory(named: "ImportedDirectories", using: fileManager)
     }
 
+    private func runtimeLaunchRootDirectory(using fileManager: FileManager) throws -> URL {
+      let directory: FileManager.SearchPathDirectory = {
+        #if os(tvOS)
+          .cachesDirectory
+        #else
+          .documentDirectory
+        #endif
+      }()
+
+      return try fileManager.url(
+        for: directory,
+        in: .userDomainMask,
+        appropriateFor: nil,
+        create: true
+      )
+    }
+
     private func isLaunchableInPlaceOnSandboxedPlatforms(
       _ sourceURL: URL, using fileManager: FileManager
     )
       throws -> Bool
     {
-      let documentsURL = try fileManager.url(
-        for: .documentDirectory,
-        in: .userDomainMask,
-        appropriateFor: nil,
-        create: true
-      )
+      let runtimeRootURL = try runtimeLaunchRootDirectory(using: fileManager)
 
-      if Self.path(sourceURL, isWithin: documentsURL) {
+      if Self.path(sourceURL, isWithin: runtimeRootURL) {
         return true
       }
 
@@ -163,8 +217,42 @@ actor ScummVMGamePathResolver {
     }
   #endif
 
+  private func importedFilesRootDirectory(using fileManager: FileManager) throws -> URL {
+    try importedContentRootDirectory(named: "ImportedFiles", using: fileManager)
+  }
+
   private func extractionRootDirectory(using fileManager: FileManager) throws -> URL {
     try importedContentRootDirectory(named: "ImportedArchives", using: fileManager)
+  }
+
+  private func managedContentBaseDirectory(using fileManager: FileManager) throws -> URL {
+    let baseURL: URL
+    #if os(iOS)
+      baseURL = try fileManager.url(
+        for: .documentDirectory,
+        in: .userDomainMask,
+        appropriateFor: nil,
+        create: true
+      )
+    #elseif os(tvOS)
+      baseURL = try fileManager.url(
+        for: .cachesDirectory,
+        in: .userDomainMask,
+        appropriateFor: nil,
+        create: true
+      )
+    #else
+      baseURL = try fileManager.url(
+        for: .applicationSupportDirectory,
+        in: .userDomainMask,
+        appropriateFor: nil,
+        create: true
+      )
+    #endif
+
+    let rootURL = baseURL.appendingPathComponent("ScummVM", isDirectory: true)
+    try fileManager.createDirectory(at: rootURL, withIntermediateDirectories: true)
+    return rootURL
   }
 
   private func importedContentRootDirectory(
@@ -172,27 +260,25 @@ actor ScummVMGamePathResolver {
   )
     throws -> URL
   {
-    #if os(iOS) || os(tvOS)
-      let baseURL = try fileManager.url(
-        for: .documentDirectory,
-        in: .userDomainMask,
-        appropriateFor: nil,
-        create: true
-      )
-    #else
-      let baseURL = try fileManager.url(
-        for: .applicationSupportDirectory,
-        in: .userDomainMask,
-        appropriateFor: nil,
-        create: true
-      )
-    #endif
-    let rootURL =
-      baseURL
-      .appendingPathComponent("ScummVM", isDirectory: true)
+    let rootURL = try managedContentBaseDirectory(using: fileManager)
       .appendingPathComponent(leafDirectory, isDirectory: true)
     try fileManager.createDirectory(at: rootURL, withIntermediateDirectories: true)
     return rootURL
+  }
+
+  private func isManagedLaunchPath(_ sourceURL: URL, using fileManager: FileManager) throws -> Bool {
+    let managedContentBaseURL = try managedContentBaseDirectory(using: fileManager)
+    if Self.path(sourceURL, isWithin: managedContentBaseURL) {
+      return true
+    }
+
+    if let bundleResourceURL = Bundle.main.resourceURL,
+      Self.path(sourceURL, isWithin: bundleResourceURL)
+    {
+      return true
+    }
+
+    return false
   }
 
   private func preferredGameDirectory(in extractionDirectory: URL, using fileManager: FileManager)
@@ -252,9 +338,27 @@ actor ScummVMGamePathResolver {
 
   private static func extractionDirectoryName(for archiveURL: URL) -> String {
     let baseName = archiveURL.deletingPathExtension().lastPathComponent
-    let sanitizedBaseName = baseName.replacingOccurrences(of: "/", with: "-")
+    let sanitizedBaseName = sanitizedPathComponent(baseName)
     let hash = fnv1a64(archiveURL.standardizedFileURL.path)
     return "\(sanitizedBaseName)-\(String(hash, radix: 16))"
+  }
+
+  private static func importedFileName(for fileURL: URL) -> String {
+    let baseName = fileURL.deletingPathExtension().lastPathComponent
+    let fileExtension = fileURL.pathExtension
+    let sanitizedBaseName = sanitizedPathComponent(baseName)
+    let hash = fnv1a64(fileURL.standardizedFileURL.path)
+    let stem = "\(sanitizedBaseName)-\(String(hash, radix: 16))"
+
+    guard !fileExtension.isEmpty else {
+      return stem
+    }
+
+    return "\(stem).\(fileExtension)"
+  }
+
+  private static func sanitizedPathComponent(_ value: String) -> String {
+    value.replacingOccurrences(of: "/", with: "-")
   }
 
   private static func fnv1a64(_ string: String) -> UInt64 {

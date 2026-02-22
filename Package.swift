@@ -28,10 +28,14 @@ let package = Package(
       targets: ["ScummVMtvOS"]
     ),
   ],
+  dependencies: [
+    .package(url: "https://github.com/weichsel/ZIPFoundation.git", from: "0.9.20"),
+  ],
   targets: [
     .target(
       name: "ScummVM",
       dependencies: [
+        .product(name: "ZIPFoundation", package: "ZIPFoundation"),
         .target(name: "ScummVMmacOS", condition: .when(platforms: [.macOS])),
         .target(name: "ScummVMiOS", condition: .when(platforms: [.iOS, .tvOS])),
         .target(name: "ScummVMtvOS", condition: .when(platforms: [.tvOS])),

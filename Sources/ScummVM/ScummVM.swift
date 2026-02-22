@@ -7,29 +7,20 @@
 
 import SwiftUI
 
-#if os(tvOS)
-  import ScummVMtvOS
-#elseif os(iOS)
-  import ScummVMiOS
-#elseif os(macOS)
-  import ScummVMmacOS
-#endif
-
 public struct ScummVM: View {
-  private let gamePath: String?
+  @StateObject private var viewModel: ScummVMViewModel
 
   public init(gamePath: String? = nil) {
-    self.gamePath = gamePath
-    _ = ScummVMEngineSharedInstance()
+    _viewModel = StateObject(wrappedValue: ScummVMViewModel(gamePath: gamePath))
   }
 
   public var body: some View {
     ScummVMView()
       .onAppear {
-        ScummVMEngineSharedInstance().start(gamePath: gamePath)
+        viewModel.start()
       }
       .onDisappear {
-        ScummVMEngineSharedInstance().stop()
+        viewModel.stop()
       }
   }
 }

@@ -92,6 +92,64 @@ static NSString *SCVMAppBundleVirtualPath(NSString *relativeDirectory) {
     return [@"appbundle:/" stringByAppendingString:relativeDirectory];
 }
 
+static NSString *SCVMStandardizedResolvedPath(NSString *path) {
+    if (path.length == 0) {
+        return @"";
+    }
+
+    NSString *resolvedPath = [path stringByResolvingSymlinksInPath];
+    return [resolvedPath stringByStandardizingPath];
+}
+
+static BOOL SCVMPathRelativeToDirectory(NSString *path, NSString *directory, NSString **relativePath) {
+    if (path.length == 0 || directory.length == 0 || ![path hasPrefix:directory]) {
+        return NO;
+    }
+
+    NSUInteger directoryLength = directory.length;
+    if (path.length > directoryLength && [path characterAtIndex:directoryLength] != '/') {
+        return NO;
+    }
+
+    if (relativePath != nil) {
+        NSString *suffix = [path substringFromIndex:directoryLength];
+        if (suffix.length == 0) {
+            suffix = @"/";
+        } else if ([suffix characterAtIndex:0] != '/') {
+            suffix = [@"/" stringByAppendingString:suffix];
+        }
+        *relativePath = suffix;
+    }
+
+    return YES;
+}
+
+static NSString *SCVMNormalizeLaunchGamePath(NSString * _Nullable gamePath) {
+    NSString *trimmedGamePath = [gamePath stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+    if (trimmedGamePath.length == 0) {
+        return trimmedGamePath;
+    }
+
+    // The iOS backend uses a chroot filesystem rooted at the app Documents directory.
+    // Convert native absolute paths under that root into chroot-relative paths.
+    NSString *documentsPath = [NSString stringWithUTF8String:iOS7_getDocumentsDir().c_str()];
+    NSString *resolvedGamePath = SCVMStandardizedResolvedPath(trimmedGamePath);
+    NSString *resolvedDocumentsPath = SCVMStandardizedResolvedPath(documentsPath);
+    NSString *relativePath = nil;
+
+    if (SCVMPathRelativeToDirectory(resolvedGamePath, resolvedDocumentsPath, &relativePath)) {
+        return relativePath;
+    }
+
+    NSString *bundleResourcePath = NSBundle.mainBundle.resourcePath;
+    NSString *resolvedBundleResourcePath = SCVMStandardizedResolvedPath(bundleResourcePath);
+    if (SCVMPathRelativeToDirectory(resolvedGamePath, resolvedBundleResourcePath, &relativePath)) {
+        return [@"appbundle:" stringByAppendingString:relativePath];
+    }
+
+    return trimmedGamePath;
+}
+
 static NSMutableArray<NSString *> *SCVMBuildRuntimeArguments(NSString * _Nullable gamePath) {
     NSMutableArray<NSString *> *arguments = [NSProcessInfo processInfo].arguments.mutableCopy;
     NSString *selectedGuiTheme = nil;
@@ -133,9 +191,9 @@ static NSMutableArray<NSString *> *SCVMBuildRuntimeArguments(NSString * _Nullabl
         SCVMUpsertOption(arguments, @"--extrapath", extraPath);
     }
 
-    NSString *trimmedGamePath = [gamePath stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
-    if (trimmedGamePath.length > 0) {
-        SCVMUpsertOption(arguments, @"--path", trimmedGamePath);
+    NSString *normalizedGamePath = SCVMNormalizeLaunchGamePath(gamePath);
+    if (normalizedGamePath.length > 0) {
+        SCVMUpsertOption(arguments, @"--path", normalizedGamePath);
         if (!SCVMArgumentsContainValue(arguments, @"--auto-detect")) {
             [arguments addObject:@"--auto-detect"];
         }

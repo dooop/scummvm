@@ -104,6 +104,9 @@ If you need manual control, you can use `ScummVMView` and call `ScummVMEngineSha
 ## Runtime data and savegames
 - iOS/tvOS savegames are created in the app's Documents directory under `Savegames/` at engine startup.
 - macOS savegames are created in the Documents directory under `Savegames/` during engine setup.
+- Wrapper-managed stop requests perform a best-effort autosave before engine shutdown.
+- When a non-nil game path is used, startup passes `--save-slot` (native autosave slot) so ScummVM restores autosave when available.
+- On macOS, explicit game-path launches first try to resolve an existing configured target and launch it directly with native `save_slot` restore; if no target matches, startup falls back to `--path` + `--auto-detect`. When game path is nil, launcher-only behavior is preserved and wrapper-owned save-slot hints are cleared.
 - Theme and engine-data paths are resolved by scanning the app bundle; iOS/tvOS uses `appbundle:/` virtual paths and prefers `scummremastered.zip` when present, while macOS adds `--themepath`, `--iconspath`, and `--extrapath` with absolute bundle paths when needed.
 - ScummVM configuration and game data files follow upstream behavior and are not customized here.
 

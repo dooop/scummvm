@@ -194,9 +194,15 @@ static NSMutableArray<NSString *> *SCVMBuildRuntimeArguments(NSString * _Nullabl
     NSString *normalizedGamePath = SCVMNormalizeLaunchGamePath(gamePath);
     if (normalizedGamePath.length > 0) {
         SCVMUpsertOption(arguments, @"--path", normalizedGamePath);
+        SCVMUpsertOption(arguments, @"--save-slot", nil);
+        if (!SCVMArgumentsContainValue(arguments, @"--save-slot")) {
+            [arguments addObject:@"--save-slot"];
+        }
         if (!SCVMArgumentsContainValue(arguments, @"--auto-detect")) {
             [arguments addObject:@"--auto-detect"];
         }
+    } else {
+        SCVMUpsertOption(arguments, @"--save-slot", nil);
     }
 
     if (themePath.length > 0) {

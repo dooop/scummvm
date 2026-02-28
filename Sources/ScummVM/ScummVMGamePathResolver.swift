@@ -266,7 +266,8 @@ actor ScummVMGamePathResolver {
     return rootURL
   }
 
-  private func isManagedLaunchPath(_ sourceURL: URL, using fileManager: FileManager) throws -> Bool {
+  private func isManagedLaunchPath(_ sourceURL: URL, using fileManager: FileManager) throws -> Bool
+  {
     let managedContentBaseURL = try managedContentBaseDirectory(using: fileManager)
     if Self.path(sourceURL, isWithin: managedContentBaseURL) {
       return true

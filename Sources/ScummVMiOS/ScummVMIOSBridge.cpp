@@ -9,10 +9,35 @@
 #include "base/main.h"
 #include "common/config-manager.h"
 #include "common/events.h"
+#include "common/translation.h"
 #include "common/system.h"
 #include "engines/engine.h"
+#include "engines/metaengine.h"
 
 extern std::atomic<bool> g_scummVMIOSWrapperTimerCallbacksEnabled;
+
+static void iOS7_performBestEffortAutosaveBeforeQuit() {
+	if (!g_engine)
+		return;
+
+	if (!g_engine->hasFeature(Engine::kSupportsSavingDuringRuntime) || !g_engine->canSaveAutosaveCurrently())
+		return;
+
+	MetaEngine *metaEngine = g_engine->getMetaEngine();
+	if (!metaEngine || !metaEngine->hasFeature(MetaEngine::kSupportsLoadingDuringStartup))
+		return;
+
+	const Common::String targetName(ConfMan.getActiveDomainName());
+	const int autosaveSlot = g_engine->getAutosaveSlot();
+	if (autosaveSlot < 0)
+		return;
+
+	const SaveStateDescriptor descriptor = metaEngine->querySaveMetaInfos(targetName.c_str(), autosaveSlot);
+	if (descriptor.getSaveSlot() != -1 && !descriptor.isAutosave())
+		return;
+
+	g_engine->saveGameState(autosaveSlot, _("Autosave"), true);
+}
 
 void iOS7_destroySharedOSystemInstance() {
 	if (g_system) {
@@ -27,6 +52,8 @@ void iOS7_quitEngine() {
 		// Embedded stop requests must not be redirected into the launcher.
 		ConfMan.setBool("gui_return_to_launcher_at_exit", false, Common::ConfigManager::kTransientDomain);
 		ConfMan.setBool("confirm_exit", false, Common::ConfigManager::kTransientDomain);
+
+		iOS7_performBestEffortAutosaveBeforeQuit();
 
 		if (g_system->getEventManager()) {
 			g_system->getEventManager()->resetReturnToLauncher();

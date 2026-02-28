@@ -79,20 +79,42 @@ static inline void execute_on_main_thread(void (^block)(void)) {
 
 #if TARGET_OS_IOS
 static NSBundle *scummVMIOSModuleResourceBundle() {
-	NSBundle *moduleBundle = nil;
+	static NSBundle *cachedBundle = nil;
+	static dispatch_once_t onceToken;
+	dispatch_once(&onceToken, ^{
+		NSFileManager *fileManager = [NSFileManager defaultManager];
+		NSBundle *moduleBundle = nil;
 #if defined(SWIFTPM_MODULE_BUNDLE)
-	moduleBundle = SWIFTPM_MODULE_BUNDLE;
-	if (moduleBundle != nil && [[NSFileManager defaultManager] fileExistsAtPath:[moduleBundle bundlePath]]) {
-		return moduleBundle;
-	}
-#endif
-	NSURL *moduleBundleURL = [[[NSBundle mainBundle] bundleURL] URLByAppendingPathComponent:@"ScummVM_ScummVMiOS.bundle"];
-	moduleBundle = [NSBundle bundleWithURL:moduleBundleURL];
-	if (moduleBundle != nil && [[NSFileManager defaultManager] fileExistsAtPath:[moduleBundle bundlePath]]) {
-		return moduleBundle;
-	}
+		@try {
+			moduleBundle = SWIFTPM_MODULE_BUNDLE;
+		}
+		@catch (NSException *exception) {
+			NSLog(@"ScummVM: SwiftPM resource bundle lookup failed (%@). Falling back to bundle name probes.", exception.reason);
+		}
 
-	return nil;
+		if (moduleBundle != nil && [fileManager fileExistsAtPath:[moduleBundle bundlePath]]) {
+			cachedBundle = moduleBundle;
+			return;
+		}
+#endif
+
+		NSArray<NSString *> *candidateBundleNames = @[
+			@"swift_scummvm_ScummVMiOS.bundle",
+			@"swift-scummvm_ScummVMiOS.bundle",
+			@"ScummVM_ScummVMiOS.bundle"
+		];
+		NSURL *mainBundleURL = [[NSBundle mainBundle] bundleURL];
+		for (NSString *bundleName in candidateBundleNames) {
+			NSURL *moduleBundleURL = [mainBundleURL URLByAppendingPathComponent:bundleName];
+			NSBundle *candidateBundle = [NSBundle bundleWithURL:moduleBundleURL];
+			if (candidateBundle != nil && [fileManager fileExistsAtPath:[candidateBundle bundlePath]]) {
+				cachedBundle = candidateBundle;
+				return;
+			}
+		}
+	});
+
+	return cachedBundle;
 }
 
 static UIImage *scummVMIOSImageFromPDF(NSString *pdfPath) {

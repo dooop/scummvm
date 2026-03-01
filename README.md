@@ -74,21 +74,7 @@ struct ContentView: View {
 	let gameURL: URL
 
 	var body: some View {
-		ScummVM(gamePath: gameURL)
-	}
-}
-```
-
-Use a `Binding<URL?>` to change the game at runtime:
-```swift
-import ScummVM
-
-struct ContentView: View {
-	@State private var gameURL: URL? = nil
-
-	var body: some View {
-		ScummVM(gamePath: $gameURL)
-		// Changing gameURL restarts the engine with the new path.
+		ScummVM(game: gameURL)
 	}
 }
 ```
@@ -111,7 +97,7 @@ If you need manual control, you can use `ScummVMView` and call `ScummVMEngineSha
 - ScummVM configuration and game data files follow upstream behavior and are not customized here.
 
 ## Game path resolution and archive extraction
-`ScummVMGamePathResolver` (an `actor` in `Sources/ScummVM/`) is responsible for resolving the `gamePath` URL into a concrete directory before the engine starts. Resolution is asynchronous and cancellation-aware.
+`ScummVMGamePathResolver` (an `actor` in `Sources/ScummVM/`) resolves the `game` URL into a concrete directory before the engine starts. Resolution is asynchronous and cancellation-aware.
 
 ### Archive extraction (all platforms)
 - Supported archive extensions: `.zip`, `.scummvm`.
@@ -143,8 +129,8 @@ If you need manual control, you can use `ScummVMView` and call `ScummVMEngineSha
 
 ## Status and next steps
 This wrapper is under active development. Current state:
-- The `start`/`stop` lifecycle is fully implemented via a state machine in `ScummVMViewModel` with phases: `idle`, `resolvingPath`, `startRequested`, `stopRequested`.
-- Game path resolution and archive extraction run asynchronously using Swift structured concurrency before the engine starts. Start tokens guard against races when the path changes mid-resolution.
+- `ScummVMViewModel` uses a simplified lifecycle policy: resolve path on demand, start when requested, and stop on disappear/background.
+- Game path resolution and archive extraction run asynchronously using Swift structured concurrency before engine startup. A request token ensures only the latest start request is applied.
 - iOS/tvOS creates UIKit/backend state on the main thread, then runs the engine loop (`iOS7_init`) on a background queue.
 - macOS sets up SDL/OSystem and runs `scummvm_main` on the main queue.
 - Moving macOS engine execution to a background thread is a known next step; do not add main-thread assumptions that would block that migration.

@@ -9,26 +9,17 @@ import Foundation
 import SwiftUI
 
 public struct ScummVM: View {
-  @Binding private var gamePath: URL?
+  private let game: URL?
   @StateObject private var viewModel: ScummVMViewModel
   @State private var isVisible = false
   @Environment(\.scenePhase) private var scenePhase
 
-  public init(gamePath: URL? = nil) {
-    _gamePath = .constant(gamePath)
+  public init(game: URL? = nil) {
+    self.game = game
     #if os(iOS)
       _viewModel = StateObject(wrappedValue: ScummVMViewModel.sharedIOSHost)
     #else
-      _viewModel = StateObject(wrappedValue: ScummVMViewModel(gamePath: gamePath))
-    #endif
-  }
-
-  public init(gamePath: Binding<URL?>) {
-    _gamePath = gamePath
-    #if os(iOS)
-      _viewModel = StateObject(wrappedValue: ScummVMViewModel.sharedIOSHost)
-    #else
-      _viewModel = StateObject(wrappedValue: ScummVMViewModel(gamePath: gamePath.wrappedValue))
+      _viewModel = StateObject(wrappedValue: ScummVMViewModel(game: game))
     #endif
   }
 
@@ -37,7 +28,7 @@ public struct ScummVM: View {
       .onAppear {
         isVisible = true
         #if os(iOS)
-          viewModel.hostAttach(gamePath: gamePath, scenePhase: scenePhase)
+          viewModel.hostAttach(game: game, scenePhase: scenePhase)
         #else
           viewModel.start()
         #endif
@@ -48,13 +39,6 @@ public struct ScummVM: View {
           viewModel.hostDetach(scenePhase: scenePhase)
         #else
           viewModel.stop()
-        #endif
-      }
-      .onChange(of: gamePath) { newGamePath in
-        #if os(iOS)
-          viewModel.hostUpdateGamePath(newGamePath)
-        #else
-          viewModel.updateGamePath(newGamePath)
         #endif
       }
       .onChange(of: scenePhase) { newScenePhase in

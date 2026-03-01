@@ -11,11 +11,15 @@ import ZIPFoundation
 actor ScummVMGamePathResolver {
   private static let supportedArchiveExtensions: Set<String> = ["zip", "scummvm"]
 
-  func resolveGamePath(_ gamePath: URL?) async -> URL? {
-    guard let sourceURL = gamePath else { return nil }
+  func resolveGamePath(_ game: URL?) async -> URL? {
+    guard let sourceURL = game else { return nil }
     guard sourceURL.isFileURL else {
       print("ScummVM: Unsupported non-file game URL: \(sourceURL)")
       return nil
+    }
+
+    if Task.isCancelled {
+      return sourceURL
     }
 
     let fileManager = FileManager.default
@@ -25,64 +29,31 @@ actor ScummVMGamePathResolver {
       return sourceURL
     }
 
-    if isDirectory.boolValue {
-      #if os(iOS) || os(tvOS)
-        do {
-          if Task.isCancelled {
-            return sourceURL
-          }
-
-          let launchDirectory = try importDirectoryIfNeeded(at: sourceURL, using: fileManager)
-          guard try isUsableGamePath(launchDirectory, using: fileManager) else {
-            print("ScummVM: Imported directory path missing or empty at \(launchDirectory.path)")
-            return sourceURL
-          }
-          return launchDirectory
-        } catch {
-          print("ScummVM: Failed to import directory at \(sourceURL.path): \(error)")
-          return sourceURL
-        }
-      #else
-        return sourceURL
-      #endif
-    }
-
-    guard Self.supportedArchiveExtensions.contains(sourceURL.pathExtension.lowercased()) else {
-      do {
-        if Task.isCancelled {
-          return sourceURL
-        }
-
-        let importedFileURL = try importFileIfNeeded(at: sourceURL, using: fileManager)
-        guard try isUsableGamePath(importedFileURL, using: fileManager) else {
-          print("ScummVM: Imported file path missing at \(importedFileURL.path)")
-          return sourceURL
-        }
-        return importedFileURL
-      } catch {
-        print("ScummVM: Failed to import file at \(sourceURL.path): \(error)")
-        return sourceURL
-      }
-    }
-
     do {
-      if Task.isCancelled {
-        return sourceURL
+      if isDirectory.boolValue {
+        #if os(iOS) || os(tvOS)
+          return try importDirectoryIfNeeded(at: sourceURL, using: fileManager)
+        #else
+          return sourceURL
+        #endif
       }
 
-      let extractedDirectory = try extractArchive(at: sourceURL, using: fileManager)
-      guard try isUsableGamePath(extractedDirectory, using: fileManager) else {
-        print("ScummVM: Extracted path missing or empty at \(extractedDirectory.path)")
-        return sourceURL
+      if Self.supportedArchiveExtensions.contains(sourceURL.pathExtension.lowercased()) {
+        return try extractArchive(at: sourceURL, using: fileManager)
       }
-      return extractedDirectory
+
+      return try importFileIfNeeded(at: sourceURL, using: fileManager)
     } catch {
-      print("ScummVM: Failed to extract archive at \(sourceURL.path): \(error)")
+      print("ScummVM: Failed to resolve game path at \(sourceURL.path): \(error)")
       return sourceURL
     }
   }
 
   private func extractArchive(at archiveURL: URL, using fileManager: FileManager) throws -> URL {
+    if Task.isCancelled {
+      return archiveURL
+    }
+
     let extractionRoot = try extractionRootDirectory(using: fileManager)
     let destination = extractionRoot.appendingPathComponent(
       Self.extractionDirectoryName(for: archiveURL),
@@ -110,6 +81,10 @@ actor ScummVMGamePathResolver {
 
   private func importFileIfNeeded(at sourceURL: URL, using fileManager: FileManager) throws -> URL {
     if try isManagedLaunchPath(sourceURL, using: fileManager) {
+      return sourceURL
+    }
+
+    if Task.isCancelled {
       return sourceURL
     }
 
@@ -141,6 +116,10 @@ actor ScummVMGamePathResolver {
       -> URL
     {
       if try isLaunchableInPlaceOnSandboxedPlatforms(sourceURL, using: fileManager) {
+        return sourceURL
+      }
+
+      if Task.isCancelled {
         return sourceURL
       }
 
@@ -199,19 +178,11 @@ actor ScummVMGamePathResolver {
         return true
       }
 
-      #if os(iOS)
-        if let bundleResourceURL = Bundle.main.resourceURL,
-          Self.path(sourceURL, isWithin: bundleResourceURL)
-        {
-          return true
-        }
-      #elseif os(tvOS)
-        if let bundleResourceURL = Bundle.main.resourceURL,
-          Self.path(sourceURL, isWithin: bundleResourceURL)
-        {
-          return true
-        }
-      #endif
+      if let bundleResourceURL = Bundle.main.resourceURL,
+        Self.path(sourceURL, isWithin: bundleResourceURL)
+      {
+        return true
+      }
 
       return false
     }

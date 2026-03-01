@@ -1,27 +1,7 @@
 // swift-tools-version:6.0
 import PackageDescription
 
-// Pin binary assets to the dedicated GitHub Release that hosts XCFramework zips.
-// Update this only when the binary zips (and checksums below) change.
-let scummVMBinaryReleaseBaseURL = "https://github.com/dooop/swift-scummvm/releases/download/0.2.0"
-
-func scummVMBinaryTarget(
-  name: String,
-  checksum: String,
-  baseURL: String? = nil
-) -> Target {
-  if let baseURL {
-    let url = "\(baseURL)/\(name).xcframework.zip"
-    return .binaryTarget(
-      name: name,
-      url: url,
-      checksum: checksum)
-  } else {
-    return .binaryTarget(
-      name: name,
-      path: "Frameworks/\(name).xcframework")
-  }
-}
+let binaryBaseURL = "https://github.com/dooop/swift-scummvm/releases/download/0.2.0"
 
 let package = Package(
   name: "swift-scummvm",
@@ -1028,3 +1008,15 @@ let package = Package(
   cLanguageStandard: .c11,
   cxxLanguageStandard: .cxx17
 )
+
+func scummVMBinaryTarget(
+  name: String,
+  checksum: String,
+  baseURL: String = binaryBaseURL
+) -> Target {
+  let url = "\(baseURL)/\(name).xcframework.zip"
+  return .binaryTarget(
+    name: name,
+    url: url,
+    checksum: checksum)
+}

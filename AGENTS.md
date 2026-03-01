@@ -14,7 +14,6 @@
 - `Sources/ScummVMiOS/` and `Sources/ScummVMmacOS/` contain ObjC++ platform glue.
 - `Sources/ScummVMiOS/include/ScummVMEngine.h` and `Sources/ScummVMmacOS/include/ScummVMEngine.h` are the public ObjC APIs.
 - `Sources/ScummVMtvOS/` is a distinct tvOS glue target with its own requirements (not a copy of iOS).
-- `Frameworks/` contains prebuilt XCFramework dependencies.
 - [ZIPFoundation](https://github.com/weichsel/ZIPFoundation) 0.9.20+ is a Swift Package dependency used by `ScummVMGamePathResolver` for archive extraction.
 
 ## Skills
@@ -57,7 +56,6 @@
 ## Build and platform expectations
 - Supported platforms: iOS 14+, tvOS 14+, macOS 12+.
 - Swift tools version: 6.0.
-- The engine target links prebuilt XCFrameworks in `Frameworks/`.
 - tvOS glue (`Sources/ScummVMtvOS/`) has distinct requirements from iOS and must be documented separately as it evolves.
 
 ## Threading and lifecycle (current state)

@@ -133,7 +133,6 @@ If you need manual control, you can use `ScummVMView` and call `ScummVMEngineSha
 - `ScummVMEngine` sources are taken from the upstream submodule (`ScummVMEngine/`).
 - Override-only files live in `Sources/ScummVMEngineOverrides/` (plus platform glue in `Sources/ScummVMiOS/` and `Sources/ScummVMmacOS/`).
 - If a submodule source file causes an SPM-only issue, exclude it in `Package.swift` and add a replacement translation unit under `Sources/ScummVMEngineOverrides/`.
-- Run `.github/scripts/check-override-hygiene.sh` to validate override/exclusion consistency before opening a PR.
 
 ## Quick start (read before making changes)
 - Never modify anything under `Sources/ScummVMEngine/`. It is a git submodule of upstream ScummVM and must remain untouched.

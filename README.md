@@ -8,7 +8,7 @@ Upstream ScummVM repository: [scummvm/scummvm](https://github.com/scummvm/scummv
 - Reuse upstream ScummVM code directly via the `Sources/ScummVMEngine/` git submodule.
 - Keep Swift and ObjC++ wrappers thin and localized to `Sources/`.
 - Avoid long-lived forks or large downstream patches in the submodule.
-- Ship as a Swift Package that can be embedded in iOS, tvOS, and macOS apps.
+- Ship as a Swift Package that can be embedded in iOS, tvOS, and macOS apps, with a Linux executable for local engine startup.
 
 ## Architecture
 - [`ScummVM`](Sources/ScummVM/) (SwiftUI target) exposes the public Swift UI.
@@ -16,6 +16,7 @@ Upstream ScummVM repository: [scummvm/scummvm](https://github.com/scummvm/scummv
 - [`ScummVMiOS`](Sources/ScummVMiOS/) and [`ScummVMmacOS`](Sources/ScummVMmacOS/) (ObjC++ targets) provide platform glue.
 - [`ScummVMtvOS`](Sources/ScummVMtvOS/) (Swift target) re-exports `ScummVMiOS` via `@_exported import` and packages tvOS-specific assets (app icons, privacy manifest).
 - [`ScummVMApp`](Sources/ScummVMApp/) (macOS executable target) is a minimal macOS app for development and testing that embeds `ScummVM`.
+- [`ScummVMLinuxApp`](Sources/ScummVMEngine/backends/platform/sdl/posix/posix-main.cpp) (Linux executable target) starts the engine with the upstream POSIX SDL entry point.
 - Binary XCFramework zips are hosted in GitHub Releases and referenced as remote SwiftPM binary targets in `Package.swift`.
 - [`Sources/ScummVMEngineOverrides/`](Sources/ScummVMEngineOverrides/) contains replacement translation units used when upstream sources need package-specific build fixes.
 
@@ -23,6 +24,7 @@ Upstream ScummVM repository: [scummvm/scummvm](https://github.com/scummvm/scummv
 Source and executable targets:
 - [`ScummVM`](Sources/ScummVM/)
 - [`ScummVMApp`](Sources/ScummVMApp/)
+- `ScummVMLinuxApp` (Linux executable target)
 - [`ScummVMEngine`](Sources/ScummVMEngine/) (with overrides in [`Sources/ScummVMEngineOverrides/`](Sources/ScummVMEngineOverrides/))
 - [`ScummVMiOS`](Sources/ScummVMiOS/)
 - [`ScummVMmacOS`](Sources/ScummVMmacOS/)
@@ -38,10 +40,12 @@ Key entry points:
 
 ## Requirements
 - Platforms: iOS 14+, tvOS 14+, macOS 12+.
+- Linux build support is provided via the `ScummVMLinuxApp` executable target.
 - Swift tools version: 6.0 (see `Package.swift`).
 - The `ScummVMEngine/` submodule must be initialized.
 - Internet access is required on first package resolve/build so SwiftPM can download the XCFramework zips from the pinned GitHub Release (they are cached locally after download).
 - [ZIPFoundation](https://github.com/weichsel/ZIPFoundation) 0.9.20+ (declared as a Swift Package dependency in `Package.swift`).
+- Linux toolchain prerequisites for `ScummVMLinuxApp`: SDL2 and SDL2_net development libraries.
 
 ## Setup
 1. Initialize the submodule:
@@ -50,6 +54,20 @@ Key entry points:
    ```
 2. Open the package in Xcode or add it as a Swift Package dependency.
 3. Build for your desired platform target (iOS/tvOS/macOS). SwiftPM will download the XCFramework zip assets from the pinned GitHub Release on first resolve/build.
+
+Linux (local engine startup):
+
+Omarchy/Arch prerequisites:
+```sh
+sudo pacman -S --needed base-devel sdl2 sdl2_net mesa libglvnd
+```
+
+Build and run:
+```sh
+# Use `swift build` (not `swift package build`).
+swift build --product ScummVMLinuxApp
+v
+```
 
 ## Usage
 

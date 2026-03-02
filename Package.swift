@@ -5,153 +5,142 @@ import PackageDescription
 // Update this only when the binary zips (and checksums below) change.
 let scummVMBinaryReleaseBaseURL = "https://github.com/dooop/swift-scummvm/releases/download/0.2.0"
 
+let isLinuxHost: Bool = {
+#if os(Linux)
+  true
+#else
+  false
+#endif
+}()
+
+let packageDependencies: [Package.Dependency] = isLinuxHost ? [] : [
+  .package(url: "https://github.com/weichsel/ZIPFoundation.git", from: "0.9.20")
+]
+
+let scummVMTargetDependencies: [Target.Dependency] =
+  (isLinuxHost ? [] : [
+    .product(name: "ZIPFoundation", package: "ZIPFoundation")
+  ]) + [
+    .target(name: "ScummVMmacOS", condition: .when(platforms: [.macOS])),
+    .target(name: "ScummVMiOS", condition: .when(platforms: [.iOS, .tvOS])),
+    .target(name: "ScummVMtvOS", condition: .when(platforms: [.tvOS])),
+  ]
+
+let scummVMEngineTargetDependencies: [Target.Dependency] = isLinuxHost ? [] : [
+  .target(name: "a52", condition: .when(platforms: [.macOS, .iOS, .tvOS])),
+  .target(name: "bz2", condition: .when(platforms: [.macOS, .iOS, .tvOS])),
+  .target(name: "curl", condition: .when(platforms: [.macOS, .iOS, .tvOS])),
+  .target(name: "faad", condition: .when(platforms: [.macOS, .iOS, .tvOS])),
+  .target(name: "ffi", condition: .when(platforms: [.macOS, .iOS, .tvOS])),
+  .target(name: "FLAC", condition: .when(platforms: [.macOS, .iOS, .tvOS])),
+  .target(name: "fluidsynth", condition: .when(platforms: [.macOS, .iOS, .tvOS])),
+  .target(name: "freetype", condition: .when(platforms: [.macOS, .iOS, .tvOS])),
+  .target(name: "fribidi", condition: .when(platforms: [.macOS, .iOS, .tvOS])),
+  .target(name: "gif", condition: .when(platforms: [.macOS, .iOS, .tvOS])),
+  .target(name: "glib-2.0", condition: .when(platforms: [.macOS, .iOS, .tvOS])),
+  .target(name: "intl", condition: .when(platforms: [.macOS, .iOS, .tvOS])),
+  .target(name: "jpeg", condition: .when(platforms: [.macOS, .iOS, .tvOS])),
+  .target(name: "mad", condition: .when(platforms: [.macOS, .iOS, .tvOS])),
+  .target(name: "mikmod", condition: .when(platforms: [.macOS, .iOS, .tvOS])),
+  .target(name: "mpeg2", condition: .when(platforms: [.macOS, .iOS, .tvOS])),
+  .target(name: "ogg", condition: .when(platforms: [.macOS, .iOS, .tvOS])),
+  .target(name: "png", condition: .when(platforms: [.macOS, .iOS, .tvOS])),
+  .target(name: "SDL2_net", condition: .when(platforms: [.macOS, .iOS, .tvOS])),
+  .target(name: "theoradec", condition: .when(platforms: [.macOS, .iOS, .tvOS])),
+  .target(name: "vorbis", condition: .when(platforms: [.macOS, .iOS, .tvOS])),
+  .target(name: "vorbisfile", condition: .when(platforms: [.macOS, .iOS, .tvOS])),
+  .target(name: "vpx", condition: .when(platforms: [.macOS, .iOS, .tvOS])),
+  .target(name: "SDL2", condition: .when(platforms: [.macOS]))
+]
+
 func scummVMBinaryTarget(name: String,
                   checksum: String,
                   baseURL: String? = nil) -> Target {
-    if let baseURL {
-        let url = "\(baseURL)/\(name).xcframework.zip"
-        return .binaryTarget(
-            name: name,
-            url: url,
-            checksum: checksum)
-    } else {
-        return .binaryTarget(
-            name: name,
-            path: "Frameworks/\(name).xcframework")
-    }
+  let resolvedBaseURL = baseURL ?? (isLinuxHost ? scummVMBinaryReleaseBaseURL : nil)
+  if let resolvedBaseURL {
+    let url = "\(resolvedBaseURL)/\(name).xcframework.zip"
+    return .binaryTarget(name: name, url: url, checksum: checksum)
+  } else {
+    // non‑Linux hosts use locally checked‑in frameworks in `Frameworks/`
+    return .binaryTarget(name: name, path: "Frameworks/\(name).xcframework")
+  }
 }
 
-let package = Package(
-  name: "swift-scummvm",
-  platforms: [
-    .iOS(.v14), .tvOS(.v14), .macOS(.v12),
-  ],
-  products: [
-    .library(
-      name: "ScummVM",
-      targets: ["ScummVM"]
-    ),
-    .executable(
-      name: "ScummVMApp",
-      targets: ["ScummVMApp"]
-    ),
-    .library(
-      name: "ScummVMiOS",
-      targets: ["ScummVMiOS"]
-    ),
-    .library(
-      name: "ScummVMmacOS",
-      targets: ["ScummVMmacOS"]
-    ),
-    .library(
-      name: "ScummVMtvOS",
-      targets: ["ScummVMtvOS"]
-    ),
-  ],
-  dependencies: [
-    .package(url: "https://github.com/weichsel/ZIPFoundation.git", from: "0.9.20")
-  ],
-  targets: [
-    .target(
-      name: "ScummVM",
-      dependencies: [
-        .product(name: "ZIPFoundation", package: "ZIPFoundation"),
-        .target(name: "ScummVMmacOS", condition: .when(platforms: [.macOS])),
-        .target(name: "ScummVMiOS", condition: .when(platforms: [.iOS, .tvOS])),
-        .target(name: "ScummVMtvOS", condition: .when(platforms: [.tvOS])),
-      ]
-    ),
-    .executableTarget(
-      name: "ScummVMApp",
-      dependencies: [
-        .target(name: "ScummVM", condition: .when(platforms: [.macOS]))
-      ]
-    ),
-    .target(
-      name: "ScummVMEngine",
-      dependencies: [
-        "a52", "bz2", "curl", "faad", "ffi", "FLAC", "fluidsynth",
-        "freetype", "fribidi", "gif", "glib-2.0", "intl", "jpeg",
-        "mad", "mikmod", "mpeg2", "ogg", "png", "SDL2_net",
-        "theoradec", "vorbis", "vorbisfile", "vpx",
-        .target(name: "SDL2", condition: .when(platforms: [.macOS])),
-      ],
-      path: "Sources",
-      exclude: [
-        // Other targets (this target should only build engine + overrides).
-        "ScummVM",
-        "ScummVMApp",
-        "ScummVMiOS",
-        "ScummVMmacOS",
-        "ScummVMtvOS",
-        // Upstream non-runtime directories.
-        "ScummVMEngine/devtools",
-        "ScummVMEngine/dists",
-        "ScummVMEngine/test",
-        "ScummVMEngine/doc",
-        "ScummVMEngine/po",
-        "ScummVMEngine/icons",
-        "ScummVMEngine/LICENSES",
-        // Keep runtime payload on explicit resource copy rules (avoid auto resource duplication)
-        "ScummVMEngine/gui/themes",
-        // Prevent duplicate asset names (iOS + tvOS variants share filenames).
-        "ScummVMEngine/dists/tvos",
-        // Upstream files excluded from this target
-        "ScummVMEngine/engines/ags/tests",
-        "ScummVMEngine/engines/glk/adrift/sxstubs.cpp",
-        "ScummVMEngine/engines/glk/adrift/sxscript.cpp",
-        "ScummVMEngine/backends/platform/android",
-        "ScummVMEngine/backends/platform/ios7",
-        // macOS SDL backend is built in ScummVMmacOS target
-        "ScummVMEngine/backends/platform/sdl",
-        "ScummVMEngine/backends/platform/psp",
-        "ScummVMEngine/backends/platform/3ds",
-        "ScummVMEngine/backends/platform/maemo",
-        "ScummVMEngine/backends/platform/n64",
-        "ScummVMEngine/backends/platform/samsungtv",
-        "ScummVMEngine/backends/platform/wii",
-        "ScummVMEngine/backends/platform/null",
-        "ScummVMEngine/backends/platform/libretro",
-        "ScummVMEngine/backends/platform/libretro/src/libretro-threads.cpp",
-        "ScummVMEngine/backends/networking/basic/android",
-        "ScummVMEngine/backends/networking/http/android",
-        "ScummVMEngine/backends/networking/http/emscripten",
-        "ScummVMEngine/video/mkv_decoder.cpp",
-        // Override to support builds without ENABLE_EVENTRECORDER (e.g. iOS/tvOS)
-        "ScummVMEngine/common/recorderfile.cpp",
-        "ScummVMEngine/gui/updates-dialog.cpp",
-        // Override to support builds without ENABLE_EVENTRECORDER (e.g. iOS/tvOS)
-        "ScummVMEngine/gui/recorderdialog.cpp",
-        // Override to support builds without ENABLE_EVENTRECORDER (e.g. iOS/tvOS)
-        "ScummVMEngine/gui/onscreendialog.cpp",
-        "ScummVMEngine/common/updates.cpp",
-        "ScummVMEngine/backends/taskbar",
-        "ScummVMEngine/backends/fs/android",
-        "ScummVMEngine/backends/fs/kolibrios",
-        "ScummVMEngine/backends/fs/emscripten",
-        "ScummVMEngine/backends/fs/atari",
-        "ScummVMEngine/backends/graphics/sdl",
-        "ScummVMEngine/backends/graphics/surfacesdl",
-        "ScummVMEngine/backends/graphics/openglsdl",
-        "ScummVMEngine/backends/graphics/ios",
-        "ScummVMEngine/backends/graphics/android",
-        "ScummVMEngine/backends/graphics/opendingux",
-        "ScummVMEngine/backends/graphics/miyoo",
-        "ScummVMEngine/backends/saves/kolibrios",
-        // Override to support builds without ENABLE_EVENTRECORDER (e.g. iOS/tvOS)
-        "ScummVMEngine/backends/saves/recorder/recorder-saves.cpp",
-        // x86 SSE/AVX intrinsics – not compilable on ARM
-        "ScummVMEngine/graphics/blit/blit-sse2.cpp",
-        "ScummVMEngine/graphics/blit/blit-avx2.cpp",
-        "ScummVMEngine/graphics/blit/blit-atari.cpp",
-        // Generated larryScale code depends on missing generator headers
-        "ScummVMEngine/graphics/larryScale_generated.cpp",
-        "ScummVMEngine/engines/ags/lib/allegro/surface_sse2.cpp",
-        "ScummVMEngine/engines/ags/lib/allegro/surface_avx2.cpp",
-        "ScummVMEngine/engines/ags/lib/allegro/fmaths.cpp",
-        "ScummVMEngine/engines/titanic/game/transport/exit_pellerator.cpp",
-        // ARM32 assembly – incompatible with arm64
-        "ScummVMEngine/graphics/scaler/scale2xARM.s",
+let packagePlatforms: [SupportedPlatform] = [
+  .iOS(.v14), .tvOS(.v14), .macOS(.v12)
+]
+
+let packageProducts: [Product] = isLinuxHost ? [
+  .executable(name: "ScummVMLinuxApp", targets: ["ScummVMLinuxApp"]),
+] : [
+  .library(name: "ScummVM", type: .dynamic, targets: ["ScummVM"]),
+  .executable(name: "ScummVMApp", targets: ["ScummVMApp"]),
+  .library(name: "ScummVMiOS", targets: ["ScummVMiOS"]),
+  .library(name: "ScummVMmacOS", targets: ["ScummVMmacOS"]),
+  .library(name: "ScummVMtvOS", targets: ["ScummVMtvOS"]),
+]
+
+let packageTargets: [Target] = [
+  .target(
+    name: "ScummVM",
+    dependencies: scummVMTargetDependencies
+  ),
+  .executableTarget(
+    name: "ScummVMApp",
+    dependencies: [
+      .target(name: "ScummVM", condition: .when(platforms: [.macOS]))
+    ]
+  ),
+  .executableTarget(
+    name: "ScummVMLinuxApp",
+    dependencies: [
+      "ScummVMEngine"
+    ],
+    path: "Sources",
+    sources: [
+      "ScummVMLinuxApp/sdl_graphics_linux.cpp",
+      "ScummVMLinuxApp/openglsdl_graphics_linux.cpp",
+      "ScummVMLinuxApp/posix_main_linux.cpp",
+      "ScummVMLinuxApp/posix_linux.cpp",
+      "ScummVMLinuxApp/sdl_linux.cpp",
+      "ScummVMLinuxApp/sdl_window_linux.cpp",
+      "ScummVMLinuxApp/imgui_impl_sdlrenderer2_linux.cpp",
+      "ScummVMLinuxApp/imgui_impl_sdl2_linux.cpp",
+      "ScummVMLinuxApp/surfacesdl_graphics_linux.cpp",
+    ],
+    cxxSettings: [
+      .headerSearchPath("."),
+      .headerSearchPath("ScummVMEngine"),
+      .headerSearchPath("ScummVMEngine/engines"),
+      .headerSearchPath("ScummVMEngine/backends/platform/sdl"),
+      .headerSearchPath("ScummVMEngine/backends/platform/sdl/posix"),
+      .unsafeFlags(["-I/usr/include/SDL2", "-D_REENTRANT"], .when(platforms: [.linux])),
+      .define("USE_SDL2", .when(platforms: [.linux])),
+      .define("SDL_BACKEND", .when(platforms: [.linux])),
+      .define("POSIX", .when(platforms: [.linux])),
+      .define("UNIX", .when(platforms: [.linux])),
+      .define("SCUMMVM"),
+      .define("RELEASE_BUILD"),
+      .define("CONFIG_H"),
+    ],
+    linkerSettings: [
+      .linkedLibrary("c++"),
+      .linkedLibrary("SDL2", .when(platforms: [.linux])),
+      .linkedLibrary("SDL2_net", .when(platforms: [.linux])),
+      .linkedLibrary("GL", .when(platforms: [.linux])),
+      .linkedLibrary("dl", .when(platforms: [.linux])),
+      .linkedLibrary("pthread", .when(platforms: [.linux])),
+    ]
+  ),
+  .target(
+    name: "ScummVMEngine",
+    dependencies: scummVMEngineTargetDependencies,
+    path: "Sources",
+    exclude: [
+      "ScummVMEngine/dists"
+    ],
+    sources: [
+
         "ScummVMEngine/graphics/scaler/Normal2xARM.s",
         "ScummVMEngine/graphics/scaler/downscalerARM.s",
         "ScummVMEngine/engines/grim/movie/codecs/blocky8ARM.s",
@@ -226,8 +215,11 @@ let package = Package(
         "ScummVMEngine/engines/wage/debugtools.cpp",
         "ScummVMEngine/engines/director/debugger",
         "ScummVMEngine/engines/qdengine/debugger/debugtools.cpp",
-      ],
-      resources: [
+      ] + (isLinuxHost ? [
+        // Built only when USE_THEORADEC is enabled; Linux host builds disable that feature.
+        "ScummVMEngine/video/theora_decoder.cpp",
+      ] : []),
+      resources: isLinuxHost ? [] : [
         // Core runtime payload expected by ScummVM
         .copy("ScummVMEngine/dists/engine-data"),
         .copy("ScummVMEngine/dists/networking/wwwroot.zip"),
@@ -249,7 +241,8 @@ let package = Package(
         // ScummVM sources are configured for RELEASE_BUILD in this package.
         // SwiftPM debug builds inject DEBUG=1 by default, which enables
         // debug-only code paths that rely on symbols not present here.
-        .unsafeFlags(["-UDEBUG"])
+        .unsafeFlags(["-UDEBUG"]),
+        .unsafeFlags(["-I/usr/include/SDL2", "-D_REENTRANT"], .when(platforms: [.linux]))
       ],
       cxxSettings: [
         .headerSearchPath("."),
@@ -257,6 +250,7 @@ let package = Package(
         .headerSearchPath("ScummVMEngine"),
         .headerSearchPath("ScummVMEngine/engines"),
         .unsafeFlags(["-UDEBUG"]),
+        .unsafeFlags(["-I/usr/include/SDL2", "-D_REENTRANT"], .when(platforms: [.linux])),
         .unsafeFlags(["-fno-objc-arc"], .when(platforms: [.macOS])),
         .unsafeFlags(["-UYES", "-UNO"], .when(platforms: [.macOS])),
         .unsafeFlags(["-include", "ScummVMNoObjCMacros.h"], .when(platforms: [.macOS])),
@@ -265,23 +259,23 @@ let package = Package(
         .define("ENABLE_EVENTRECORDER", .when(platforms: [.macOS])),
         .define("ENABLE_WME3D"),
         .define("USE_ZLIB"),
-        .define("USE_MAD"),
-        .define("USE_FRIBIDI"),
-        .define("USE_OGG"),
-        .define("USE_VORBIS"),
-        .define("USE_FLAC"),
-        .define("USE_PNG"),
-        .define("USE_GIF"),
-        .define("USE_FAAD"),
-        .define("USE_MIKMOD"),
-        .define("USE_MPEG2"),
-        .define("USE_THEORADEC"),
-        .define("USE_FREETYPE2"),
-        .define("USE_JPEG"),
-        .define("USE_FLUIDSYNTH"),
-        .define("USE_LIBCURL"),
-        .define("USE_SDL_NET"),
-        .define("USE_BINK"),
+        .define("USE_MAD", .when(platforms: [.macOS, .iOS, .tvOS])),
+        .define("USE_FRIBIDI", .when(platforms: [.macOS, .iOS, .tvOS])),
+        .define("USE_OGG", .when(platforms: [.macOS, .iOS, .tvOS])),
+        .define("USE_VORBIS", .when(platforms: [.macOS, .iOS, .tvOS])),
+        .define("USE_FLAC", .when(platforms: [.macOS, .iOS, .tvOS])),
+        .define("USE_PNG", .when(platforms: [.macOS, .iOS, .tvOS])),
+        .define("USE_GIF", .when(platforms: [.macOS, .iOS, .tvOS])),
+        .define("USE_FAAD", .when(platforms: [.macOS, .iOS, .tvOS])),
+        .define("USE_MIKMOD", .when(platforms: [.macOS, .iOS, .tvOS])),
+        .define("USE_MPEG2", .when(platforms: [.macOS, .iOS, .tvOS])),
+        .define("USE_THEORADEC", .when(platforms: [.macOS, .iOS, .tvOS])),
+        .define("USE_FREETYPE2", .when(platforms: [.macOS, .iOS, .tvOS])),
+        .define("USE_JPEG", .when(platforms: [.macOS, .iOS, .tvOS])),
+        .define("USE_FLUIDSYNTH", .when(platforms: [.macOS, .iOS, .tvOS])),
+        .define("USE_LIBCURL", .when(platforms: [.macOS, .iOS, .tvOS])),
+        .define("USE_SDL_NET", .when(platforms: [.macOS, .iOS, .tvOS])),
+        .define("USE_BINK", .when(platforms: [.macOS, .iOS, .tvOS])),
         .define("USE_SCALERS"),
         .define("USE_HQ_SCALERS"),
         .define("USE_EDGE_SCALERS"),
@@ -425,7 +419,7 @@ let package = Package(
         .define("ENABLE_ZVISION"),
         .define("DETECTION_STATIC"),
         .define("POSIX"),
-        .define("USE_SDL2", .when(platforms: [.macOS])),
+        .define("USE_SDL2", .when(platforms: [.macOS, .linux])),
         .define("USE_GLAD"),
         .define("CONFIG_H"),
         .define("UNIX"),
@@ -436,25 +430,30 @@ let package = Package(
         .define("IPHONE_IOS7", .when(platforms: [.iOS, .tvOS])),
         .define("WITHOUT_SDL", .when(platforms: [.iOS, .tvOS])),
         .define("SCUMMVM_NEON", .when(platforms: [.iOS, .tvOS])),
-        .define("SDL_BACKEND", .when(platforms: [.macOS])),
+        .define("SDL_BACKEND", .when(platforms: [.macOS, .linux])),
         .define("MACOSX", .when(platforms: [.macOS])),
       ],
       linkerSettings: [
         .linkedLibrary("c++"),
         .linkedLibrary("z"),
-        .linkedLibrary("iconv"),
-        .linkedFramework("AudioToolbox"),
-        .linkedFramework("CoreAudio"),
-        .linkedFramework("CoreFoundation"),
-        .linkedFramework("CoreGraphics"),
-        .linkedFramework("CoreMIDI"),
-        .linkedFramework("Foundation"),
-        .linkedFramework("GameController"),
-        .linkedFramework("QuartzCore"),
-        .linkedFramework("Security"),
-        .linkedFramework("SystemConfiguration"),
+        .linkedLibrary("iconv", .when(platforms: [.macOS, .iOS, .tvOS])),
+        .linkedFramework("AudioToolbox", .when(platforms: [.macOS, .iOS, .tvOS])),
+        .linkedFramework("CoreAudio", .when(platforms: [.macOS, .iOS, .tvOS])),
+        .linkedFramework("CoreFoundation", .when(platforms: [.macOS, .iOS, .tvOS])),
+        .linkedFramework("CoreGraphics", .when(platforms: [.macOS, .iOS, .tvOS])),
+        .linkedFramework("CoreMIDI", .when(platforms: [.macOS, .iOS, .tvOS])),
+        .linkedFramework("Foundation", .when(platforms: [.macOS, .iOS, .tvOS])),
+        .linkedFramework("GameController", .when(platforms: [.macOS, .iOS, .tvOS])),
+        .linkedFramework("QuartzCore", .when(platforms: [.macOS, .iOS, .tvOS])),
+        .linkedFramework("Security", .when(platforms: [.macOS, .iOS, .tvOS])),
+        .linkedFramework("SystemConfiguration", .when(platforms: [.macOS, .iOS, .tvOS])),
         .linkedFramework("OpenGLES", .when(platforms: [.iOS, .tvOS])),
         .linkedFramework("UIKit", .when(platforms: [.iOS, .tvOS])),
+        .linkedLibrary("SDL2", .when(platforms: [.linux])),
+        .linkedLibrary("SDL2_net", .when(platforms: [.linux])),
+        .linkedLibrary("GL", .when(platforms: [.linux])),
+        .linkedLibrary("dl", .when(platforms: [.linux])),
+        .linkedLibrary("pthread", .when(platforms: [.linux])),
         .linkedLibrary("lber", .when(platforms: [.macOS])),
         .linkedLibrary("ldap", .when(platforms: [.macOS])),
         .linkedFramework("AppKit", .when(platforms: [.macOS])),
@@ -497,7 +496,7 @@ let package = Package(
         "ScummVMEngine/backends/platform/sdl/macosx/macosx_osys_misc.mm",
         "ScummVMEngine/backends/platform/sdl/macosx/macosx_wrapper.mm",
       ],
-      resources: [
+      resources: isLinuxHost ? [] : [
         // Only copy the Sparkle DSA key; copying the full macOS app template
         // embeds nested Info.plist files that fail App Store/TestFlight validation.
         .copy("ScummVMEngine/dists/macosx/dsa_pub.pem")
@@ -720,7 +719,7 @@ let package = Package(
         "ScummVMEngine/backends/platform/ios7/ios7_mouse_controller.mm",
         "ScummVMEngine/backends/platform/ios7/ios7_gamepad_controller.mm",
       ],
-      resources: [
+      resources: isLinuxHost ? [] : [
         // Platform-specific metadata/assets
         .process("ScummVMEngine/dists/ios7/Images.xcassets"),
         //.copy("ScummVMEngine/dists/ios7/Assets.car"),
@@ -921,11 +920,12 @@ let package = Package(
       dependencies: [
         "ScummVMiOS"
       ],
-      resources: [
+      resources: isLinuxHost ? [] : [
         .process("../ScummVMEngine/dists/tvos/Images.xcassets"),
         .copy("../ScummVMEngine/dists/tvos/PrivacyInfo.xcprivacy"),
       ]
-    ),
+    )
+  ] + (isLinuxHost ? [] : [
     scummVMBinaryTarget(
       name: "a52",
       checksum: "d389d7055deb36bf779853d51f6dbd653d91dbcb7fee382786b969de8b2081db"
@@ -1022,7 +1022,14 @@ let package = Package(
       name: "vpx",
       checksum: "8777c659010e27e158357dde6d418a00af9670df50a608e02b2264e9d61b8a3f"
     ),
-  ],
+  ])
+
+let package = Package(
+  name: "swift-scummvm",
+  platforms: packagePlatforms,
+  products: packageProducts,
+  dependencies: packageDependencies,
+  targets: packageTargets,
   cLanguageStandard: .c11,
   cxxLanguageStandard: .cxx17
 )

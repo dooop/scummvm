@@ -21,6 +21,7 @@ DerivedData/
 !default.mode2v3
 *.perspectivev3
 !default.perspectivev3
+.DS_STORE
 
 ## Obj-C/Swift specific
 *.hmap
@@ -92,3 +93,6 @@ iOSInjectionProject/
 # Visual Studio Code
 .vscode/
 .codex-home/
+
+# Local Frameworks (DEV)
+Frameworks/

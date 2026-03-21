@@ -13,6 +13,8 @@ public struct ScummVM: View {
   @StateObject private var viewModel: ScummVMViewModel
   @State private var isVisible = false
   @Environment(\.scenePhase) private var scenePhase
+  @State private var hasFocus: Bool = true
+  @Environment(\.dismiss) private var dismiss
 
   public init(game: URL? = nil) {
     self.game = game
@@ -25,6 +27,19 @@ public struct ScummVM: View {
 
   public var body: some View {
     ScummVMView()
+      #if os(tvOS)
+        .focusable(true)
+        .onTapGesture {
+          hasFocus = true
+        }
+        .onExitCommand {
+          if hasFocus {
+            hasFocus = false
+          } else {
+            dismiss()
+          }
+        }
+      #endif
       .onAppear {
         isVisible = true
         #if os(iOS)

@@ -41,7 +41,7 @@
 - Do not add new public surface area without explicit user request.
 
 ## Build and platform expectations
-- Supported platforms: iOS 14+, tvOS 14+, macOS 12+.
+- Supported platforms: iOS 15+, tvOS 15+, macOS 13+.
 - Swift tools version: 6.0.
 - The engine target links prebuilt XCFrameworks in `Frameworks/`.
 - tvOS glue (`Sources/ScummVMtvOS/`) has distinct requirements from iOS and must be documented separately as it evolves.

@@ -6,7 +6,7 @@ let binaryBaseURL = "https://github.com/dooop/swift-scummvm/releases/download/0.
 let package = Package(
   name: "swift-scummvm",
   platforms: [
-    .iOS(.v15), .tvOS(.v15), .macOS(.v13),
+    .iOS(.v15), .tvOS(.v16), .macOS(.v13),
   ],
   products: [
     .library(
@@ -495,6 +495,7 @@ let package = Package(
         .define("RELEASE_BUILD"),
         .define("IPHONE", .when(platforms: [.iOS, .tvOS])),
         .define("IPHONE_IOS7", .when(platforms: [.iOS, .tvOS])),
+        .define("IPHONE_TVOS", .when(platforms: [.tvOS])),
         .define("WITHOUT_SDL", .when(platforms: [.iOS, .tvOS])),
         .define("SCUMMVM_NEON", .when(platforms: [.iOS, .tvOS])),
         .define("SDL_BACKEND", .when(platforms: [.macOS])),
@@ -972,6 +973,7 @@ let package = Package(
         .define("RELEASE_BUILD"),
         .define("IPHONE", .when(platforms: [.iOS, .tvOS])),
         .define("IPHONE_IOS7", .when(platforms: [.iOS, .tvOS])),
+        .define("IPHONE_TVOS", .when(platforms: [.tvOS])),
         .define("WITHOUT_SDL", .when(platforms: [.iOS, .tvOS])),
         .define("SCUMMVM_NEON", .when(platforms: [.iOS, .tvOS])),
         .unsafeFlags(["-fno-objc-arc"]),

@@ -37,7 +37,7 @@ Key entry points:
 - `ScummVMEngine` ObjC API is the minimal bridge used by Swift.
 
 ## Requirements
-- Platforms: iOS 15+, tvOS 15+, macOS 12+.
+- Platforms: iOS 15+, tvOS 16+, macOS 12+.
 - Swift tools version: 6.0 (see `Package.swift`).
 - The `ScummVMEngine/` submodule must be initialized.
 - Internet access is required on first package resolve/build so SwiftPM can download the XCFramework zips from the pinned GitHub Release (they are cached locally after download).

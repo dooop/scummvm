@@ -263,6 +263,9 @@ let package = Package(
         "ScummVMEngine/engines/waynesworld",
         // Static data file – compiled via include from another TU
         "ScummVMEngine/engines/supernova/screenstatic.cpp",
+        // Macro-templated sprite-draw body – #include-d 12x by sprite.cpp with
+        // different macros predefined each time, not a standalone TU
+        "ScummVMEngine/engines/mads/core/sprite_0.cpp",
         // Buggy plugin stub – missing includes and wrong function names
         "ScummVMEngine/engines/ags/plugins/core/screen.cpp",
         // SDL3 backend – we use SDL2

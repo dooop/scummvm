@@ -219,6 +219,13 @@ let package = Package(
         "ScummVMEngine/audio/opl2lpt.cpp",
         // ALSA OPL – requires ALSA headers
         "ScummVMEngine/audio/alsa_opl.cpp",
+        // nFM hardware OPL boards – requires the external nfm library headers
+        // (nfmcore.h/nfmutil.h); gated upstream behind USE_NFM in fmopl.cpp,
+        // but this standalone TU includes them unconditionally.
+        "ScummVMEngine/audio/nfmopl.cpp",
+        // Atari YM2149 chip backend – includes Atari MiNT/TOS system headers
+        // unconditionally; gated upstream behind #ifdef ATARI in ym2149.cpp.
+        "ScummVMEngine/audio/atari_ym2149.cpp",
         // libsoxr adapter – requires soxr headers
         "ScummVMEngine/audio/softsynth/mt32/srchelper/SoxrAdapter.cpp",
         "ScummVMEngine/audio/softsynth/mt32/srchelper/SoxrAdapter.h",

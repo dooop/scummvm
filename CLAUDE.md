@@ -93,7 +93,7 @@ When updating `Sources/ScummVMEngine` to a newer upstream commit: record the cur
 
 ## Platform requirements
 
-- Platforms: iOS 15+, tvOS 16+, macOS 13+ (per `Package.swift`; README states tvOS 16+/macOS 12+ — treat `Package.swift` as authoritative if they drift).
+- Platforms: iOS 17+, tvOS 17+, macOS 15+ (per `Package.swift`; treat it as authoritative if other docs drift).
 - Swift tools version: 6.0.
 - ScummVM sources are compiled with `-UDEBUG` unconditionally in `cxxSettings`/`cSettings` because SwiftPM debug builds otherwise inject `DEBUG=1`, enabling upstream debug-only code paths that reference symbols not present in this build configuration.
 

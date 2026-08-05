@@ -54,7 +54,7 @@
 - Do not add new public surface area without explicit user request.
 
 ## Build and platform expectations
-- Supported platforms: iOS 15+, tvOS 15+, macOS 13+.
+- Supported platforms: iOS 17+, tvOS 17+, macOS 15+.
 - Swift tools version: 6.0.
 - tvOS glue (`Sources/ScummVMtvOS/`) has distinct requirements from iOS and must be documented separately as it evolves.
 

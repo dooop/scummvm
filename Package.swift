@@ -6,7 +6,7 @@ let binaryBaseURL = "https://github.com/dooop/swift-scummvm/releases/download/0.
 let package = Package(
   name: "swift-scummvm",
   platforms: [
-    .iOS(.v15), .tvOS(.v16), .macOS(.v13),
+    .iOS(.v17), .tvOS(.v17), .macOS(.v15),
   ],
   products: [
     .library(

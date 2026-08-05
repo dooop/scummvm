@@ -33,7 +33,7 @@ committing, or to diagnose package resolution errors.
 ### Platform conditions
 - [ ] `ScummVM` target conditionally links iOS/tvOS vs macOS glue.
 - [ ] tvOS-specific targets are not mixed into iOS conditions without intent.
-- [ ] All platform version constraints match: iOS 15+, tvOS 15+, macOS 13+.
+- [ ] All platform version constraints match: iOS 17+, tvOS 17+, macOS 15+.
 
 ### Swift tools version
 - [ ] First line is `// swift-tools-version:6.0`.

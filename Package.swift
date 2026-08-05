@@ -125,6 +125,9 @@ let package = Package(
         "ScummVMEngine/gui/recorderdialog.cpp",
         // Override to support builds without ENABLE_EVENTRECORDER (e.g. iOS/tvOS)
         "ScummVMEngine/gui/onscreendialog.cpp",
+        // Override: fixes a U32String/String comparison mismatch (pre-existing
+        // upstream bug, unrelated to this package's configuration)
+        "ScummVMEngine/gui/downloaddlcsdialog.cpp",
         "ScummVMEngine/common/updates.cpp",
         "ScummVMEngine/backends/taskbar",
         "ScummVMEngine/backends/fs/android",

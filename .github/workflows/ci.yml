@@ -12,7 +12,10 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  XCODE_VERSION: "16.2"
+  # Pin to the macos-15 runner's *default* Xcode: non-default Xcode installs on
+  # this image have been observed missing iOS/tvOS platform support, which
+  # breaks "generic/platform=iOS|tvOS" destination resolution.
+  XCODE_VERSION: "16.4"
 
 jobs:
   build-macos:

@@ -1,0 +1,114 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  XCODE_VERSION: "16.2"
+
+jobs:
+  build-macos:
+    name: Build & Test (macOS)
+    runs-on: macos-15
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 1
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_${{ env.XCODE_VERSION }}.app
+
+      - name: Record submodule commit
+        run: git -C Sources/ScummVMEngine rev-parse HEAD > .scummvmengine-sha
+
+      - name: Cache SwiftPM build artifacts
+        uses: actions/cache@v4
+        with:
+          path: .build
+          key: spm-macos-${{ hashFiles('Package.swift', 'Package.resolved', '.scummvmengine-sha') }}
+          restore-keys: |
+            spm-macos-
+
+      - name: Resolve package dependencies
+        run: swift package resolve
+
+      - name: Build (ScummVM library + ScummVMApp)
+        run: swift build -v
+
+      - name: Run tests
+        run: swift test -v
+
+  build-ios:
+    name: Build (iOS)
+    runs-on: macos-15
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 1
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_${{ env.XCODE_VERSION }}.app
+
+      - name: Record submodule commit
+        run: git -C Sources/ScummVMEngine rev-parse HEAD > .scummvmengine-sha
+
+      - name: Cache SwiftPM build artifacts
+        uses: actions/cache@v4
+        with:
+          path: .build
+          key: spm-ios-${{ hashFiles('Package.swift', 'Package.resolved', '.scummvmengine-sha') }}
+          restore-keys: |
+            spm-ios-
+
+      - name: Build ScummVM for iOS Simulator
+        run: |
+          xcodebuild build \
+            -scheme ScummVM \
+            -destination "generic/platform=iOS Simulator" \
+            -derivedDataPath .build/derivedData
+
+  build-tvos:
+    name: Build (tvOS)
+    runs-on: macos-15
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 1
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_${{ env.XCODE_VERSION }}.app
+
+      - name: Record submodule commit
+        run: git -C Sources/ScummVMEngine rev-parse HEAD > .scummvmengine-sha
+
+      - name: Cache SwiftPM build artifacts
+        uses: actions/cache@v4
+        with:
+          path: .build
+          key: spm-tvos-${{ hashFiles('Package.swift', 'Package.resolved', '.scummvmengine-sha') }}
+          restore-keys: |
+            spm-tvos-
+
+      - name: Build ScummVM for tvOS Simulator
+        run: |
+          xcodebuild build \
+            -scheme ScummVM \
+            -destination "generic/platform=tvOS Simulator" \
+            -derivedDataPath .build/derivedData

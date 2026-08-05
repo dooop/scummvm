@@ -17,11 +17,17 @@ Build (macOS host, other platforms need Xcode):
 ```sh
 swift build
 ```
-There is no test target in this package (no `Tests/` directory, no `testTarget` in `Package.swift`) — do not assume `swift test` works.
+
+Run tests (macOS host only — `ScummVMTests` exercises `ScummVMGamePathResolver`'s pure-Swift path-resolution logic and does not touch the C/C++ engine):
+```sh
+swift test
+```
 
 Build for iOS/tvOS/macOS in Xcode: open `Package.swift` directly, or add it as a Swift Package dependency to a host app, then build the desired platform target. First build/resolve requires internet access to download XCFramework binary zips from the pinned GitHub Release referenced in `Package.swift`.
 
 `ScummVMApp` (`Sources/ScummVMApp/`) is a minimal macOS executable target useful for manually exercising the `ScummVM` SwiftUI view during development — build/run it directly for a quick end-to-end check on macOS.
+
+CI (`.github/workflows/ci.yml`) builds the package on macOS, iOS Simulator, and tvOS Simulator via GitHub-hosted `macos-15` runners, and runs `swift test` on macOS.
 
 ## Non-negotiable rules
 

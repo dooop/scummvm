@@ -171,6 +171,11 @@ let package = Package(
         // M68K assembly (Amiga/Atari) – incompatible with arm64/x86_64
         "ScummVMEngine/engines/scumm/gfxM68K.S",
         "ScummVMEngine/engines/scumm/m68k",
+        // Rebel Assault II PSX support: gated upstream behind ENABLE_REBEL2_PSX,
+        // which this package does not define; unlike scumm.cpp's own references
+        // (properly #ifdef-guarded), these sources reference the gated types
+        // unconditionally and fail to compile without the flag.
+        "ScummVMEngine/engines/scumm/insane/rebel2/psx",
         // Platform-specific assembly (Atari, DS, Dreamcast)
         "ScummVMEngine/backends/graphics/atari",
         "ScummVMEngine/backends/platform/atari",

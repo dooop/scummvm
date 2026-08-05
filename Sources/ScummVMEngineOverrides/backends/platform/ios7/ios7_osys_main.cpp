@@ -48,6 +48,7 @@
 #include "graphics/cursorman.h"
 #include "gui/gui-manager.h"
 
+#include "backends/events/default/default-events.h"
 #include "backends/graphics/ios/ios-graphics.h"
 #include "backends/saves/default/default-saves.h"
 #include "backends/timer/default/default-timer.h"
@@ -213,7 +214,10 @@ void OSystem_iOS7::initBackend() {
 
 	ConfMan.registerDefault("iconspath", Common::Path("/"));
 
-	EventsBaseBackend::initBackend();
+	if (!_eventManager)
+		_eventManager = new DefaultEventManager(this);
+
+	BaseBackend::initBackend();
 }
 
 bool OSystem_iOS7::hasFeature(Feature f) {

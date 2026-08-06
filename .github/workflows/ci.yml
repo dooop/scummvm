@@ -39,9 +39,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .build
-          key: spm-macos-${{ hashFiles('Package.swift', 'Package.resolved', '.scummvmengine-sha', 'Sources/**', '!Sources/ScummVMEngine/**', 'Tests/**') }}
-          restore-keys: |
-            spm-macos-
+          key: spm-macos-v2-${{ hashFiles('Package.swift', 'Package.resolved', '.scummvmengine-sha', 'Sources/**', '!Sources/ScummVMEngine/**', 'Tests/**') }}
 
       - name: Resolve package dependencies
         run: swift package resolve
@@ -73,9 +71,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .build
-          key: spm-ios-${{ hashFiles('Package.swift', 'Package.resolved', '.scummvmengine-sha', 'Sources/**', '!Sources/ScummVMEngine/**', 'Tests/**') }}
-          restore-keys: |
-            spm-ios-
+          key: spm-ios-v2-${{ hashFiles('Package.swift', 'Package.resolved', '.scummvmengine-sha', 'Sources/**', '!Sources/ScummVMEngine/**', 'Tests/**') }}
 
       - name: Build ScummVM for iOS
         run: |
@@ -106,9 +102,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .build
-          key: spm-tvos-${{ hashFiles('Package.swift', 'Package.resolved', '.scummvmengine-sha', 'Sources/**', '!Sources/ScummVMEngine/**', 'Tests/**') }}
-          restore-keys: |
-            spm-tvos-
+          key: spm-tvos-v2-${{ hashFiles('Package.swift', 'Package.resolved', '.scummvmengine-sha', 'Sources/**', '!Sources/ScummVMEngine/**', 'Tests/**') }}
 
       - name: Build ScummVM for tvOS
         run: |

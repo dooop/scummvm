@@ -6,7 +6,7 @@ let binaryBaseURL = "https://github.com/dooop/swift-scummvm/releases/download/0.
 let package = Package(
   name: "swift-scummvm",
   platforms: [
-    .iOS(.v15), .tvOS(.v16), .macOS(.v13),
+    .iOS(.v17), .tvOS(.v17), .macOS(.v15),
   ],
   products: [
     .library(
@@ -112,6 +112,7 @@ let package = Package(
         "ScummVMEngine/backends/dialogs/win32",
         "ScummVMEngine/backends/audiocd/linux",
         "ScummVMEngine/backends/audiocd/win32",
+        "ScummVMEngine/backends/audiocd/atari",
         "ScummVMEngine/backends/networking/basic/android",
         "ScummVMEngine/backends/networking/http/android",
         "ScummVMEngine/backends/networking/http/emscripten",
@@ -124,6 +125,12 @@ let package = Package(
         "ScummVMEngine/gui/recorderdialog.cpp",
         // Override to support builds without ENABLE_EVENTRECORDER (e.g. iOS/tvOS)
         "ScummVMEngine/gui/onscreendialog.cpp",
+        // Override: fixes a U32String/String comparison mismatch (pre-existing
+        // upstream bug, unrelated to this package's configuration)
+        "ScummVMEngine/gui/downloaddlcsdialog.cpp",
+        // Override: isImGuiRecorderEnabled() turned into a free function
+        // (see override file for why a header-only fix doesn't work here)
+        "ScummVMEngine/gui/EventRecorder.cpp",
         "ScummVMEngine/common/updates.cpp",
         "ScummVMEngine/backends/taskbar",
         "ScummVMEngine/backends/fs/android",
@@ -167,12 +174,22 @@ let package = Package(
         "ScummVMEngine/engines/grim/movie/codecs/blocky8ARM.s",
         "ScummVMEngine/engines/scumm/gfxARM.s",
         "ScummVMEngine/engines/scumm/smush/codec47ARM.s",
+        // M68K assembly (Amiga/Atari) – incompatible with arm64/x86_64
+        "ScummVMEngine/engines/scumm/gfxM68K.S",
+        "ScummVMEngine/engines/scumm/m68k",
+        // Rebel Assault II PSX support: gated upstream behind ENABLE_REBEL2_PSX,
+        // which this package does not define; unlike scumm.cpp's own references
+        // (properly #ifdef-guarded), these sources reference the gated types
+        // unconditionally and fail to compile without the flag.
+        "ScummVMEngine/engines/scumm/insane/rebel2/psx",
         // Platform-specific assembly (Atari, DS, Dreamcast)
         "ScummVMEngine/backends/graphics/atari",
         "ScummVMEngine/backends/platform/atari",
         "ScummVMEngine/backends/platform/dc",
         "ScummVMEngine/backends/platform/ds",
         "ScummVMEngine/backends/mixer/atari",
+        "ScummVMEngine/backends/mixer/android",
+        "ScummVMEngine/backends/mixer/emscriptensdl",
         "ScummVMEngine/backends/midi/camd.cpp",
         "ScummVMEngine/backends/midi/dmedia.cpp",
         "ScummVMEngine/backends/midi/riscos.cpp",
@@ -191,18 +208,30 @@ let package = Package(
         "ScummVMEngine/backends/plugins/riscos",
         "ScummVMEngine/backends/plugins/wii",
         "ScummVMEngine/backends/plugins/win32",
+        "ScummVMEngine/backends/plugins/atari",
+        "ScummVMEngine/backends/plugins/elf",
+        "ScummVMEngine/backends/plugins/firebee",
+        "ScummVMEngine/backends/plugins/mintelf",
         "ScummVMEngine/backends/printing/win32",
         "ScummVMEngine/backends/text-to-speech/emscripten",
         "ScummVMEngine/backends/text-to-speech/linux",
         "ScummVMEngine/backends/text-to-speech/windows",
         "ScummVMEngine/backends/updates/win32",
         "ScummVMEngine/backends/timer/psp",
+        "ScummVMEngine/backends/timer/emscripten",
         // RetroWave hardware OPL3 – requires external library
         "ScummVMEngine/audio/rwopl3.cpp",
         // OPL2LPT/OPL3LPT – requires libieee1284
         "ScummVMEngine/audio/opl2lpt.cpp",
         // ALSA OPL – requires ALSA headers
         "ScummVMEngine/audio/alsa_opl.cpp",
+        // nFM hardware OPL boards – requires the external nfm library headers
+        // (nfmcore.h/nfmutil.h); gated upstream behind USE_NFM in fmopl.cpp,
+        // but this standalone TU includes them unconditionally.
+        "ScummVMEngine/audio/nfmopl.cpp",
+        // Atari YM2149 chip backend – includes Atari MiNT/TOS system headers
+        // unconditionally; gated upstream behind #ifdef ATARI in ym2149.cpp.
+        "ScummVMEngine/audio/atari_ym2149.cpp",
         // libsoxr adapter – requires soxr headers
         "ScummVMEngine/audio/softsynth/mt32/srchelper/SoxrAdapter.cpp",
         "ScummVMEngine/audio/softsynth/mt32/srchelper/SoxrAdapter.h",
@@ -217,19 +246,25 @@ let package = Package(
         "ScummVMEngine/engines/alg",
         "ScummVMEngine/engines/avalanche",
         "ScummVMEngine/engines/awe",
+        "ScummVMEngine/engines/bolt",
         "ScummVMEngine/engines/chamber",
         "ScummVMEngine/engines/colony",
         "ScummVMEngine/engines/cryo",
         "ScummVMEngine/engines/dm",
+        "ScummVMEngine/engines/eem",
+        "ScummVMEngine/engines/fool",
         "ScummVMEngine/engines/gamos",
         "ScummVMEngine/engines/got",
+        "ScummVMEngine/engines/harvester",
         "ScummVMEngine/engines/hpl1",
         "ScummVMEngine/engines/immortal",
         "ScummVMEngine/engines/lastexpress",
         "ScummVMEngine/engines/lilliput",
+        "ScummVMEngine/engines/macs2",
         "ScummVMEngine/engines/macventure",
         "ScummVMEngine/engines/mediastation",
         "ScummVMEngine/engines/mutationofjb",
+        "ScummVMEngine/engines/pelrock",
         "ScummVMEngine/engines/phoenixvr",
         "ScummVMEngine/engines/playground3d",
         "ScummVMEngine/engines/sludge",
@@ -241,6 +276,13 @@ let package = Package(
         "ScummVMEngine/engines/waynesworld",
         // Static data file – compiled via include from another TU
         "ScummVMEngine/engines/supernova/screenstatic.cpp",
+        // Macro-templated sprite-draw body – #include-d 12x by sprite.cpp with
+        // different macros predefined each time, not a standalone TU
+        "ScummVMEngine/engines/mads/core/sprite_0.cpp",
+        // Orphaned duplicate of dont_frag_the_palette()/sprite_free()/etc.,
+        // which sprite.cpp already defines itself; not #include-d or
+        // referenced anywhere, and collides as a standalone TU
+        "ScummVMEngine/engines/mads/core/sprite_k.cpp",
         // Buggy plugin stub – missing includes and wrong function names
         "ScummVMEngine/engines/ags/plugins/core/screen.cpp",
         // SDL3 backend – we use SDL2
@@ -275,6 +317,10 @@ let package = Package(
         "ScummVMEngineOverrides/engines/got/game/got_game_main_override.cpp",
         "ScummVMEngineOverrides/engines/watchmaker/watchmaker_main_override.cpp",
         "ScummVMEngine/engines/chewy/main.cpp",
+        "ScummVMEngine/engines/mads/dragonsphere/main.cpp",
+        "ScummVMEngine/engines/mads/nebular/main.cpp",
+        "ScummVMEngine/engines/mads/phantom/main.cpp",
+        "ScummVMEngine/engines/mads/forest/main.cpp",
         "ScummVMEngine/engines/glk/alan2/main.cpp",
         "ScummVMEngine/engines/glk/alan3/main.cpp",
         "ScummVMEngine/engines/got/game/main.cpp",
@@ -988,6 +1034,10 @@ let package = Package(
         .process("../ScummVMEngine/dists/tvos/Images.xcassets"),
         .copy("../ScummVMEngine/dists/tvos/PrivacyInfo.xcprivacy"),
       ]
+    ),
+    .testTarget(
+      name: "ScummVMTests",
+      dependencies: ["ScummVM"]
     ),
     scummVMBinaryTarget(
       name: "a52",

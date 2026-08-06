@@ -19,7 +19,7 @@ Validate manifest integrity before and after wrapper-side build changes.
 2. Validate target boundaries so SwiftUI, platform glue, and engine override sources remain in their intended targets.
 3. Audit exclusion paths for exactness, stale upstream references, and one-to-one pairing with active overrides.
 4. Audit engine dependency names against `.binaryTarget` declarations and confirm each `Frameworks/*.xcframework` path exists.
-5. Audit platform and toolchain constraints (`iOS 15+`, `tvOS 15+`, `macOS 13+`, `swift-tools-version:6.0`) for accidental drift.
+5. Audit platform and toolchain constraints (`iOS 17+`, `tvOS 17+`, `macOS 15+`, `swift-tools-version:6.0`) for accidental drift.
 6. Re-run the build command associated with the manifest change to verify the manifest fix resolves the real failure.
 
 ## Useful Checks

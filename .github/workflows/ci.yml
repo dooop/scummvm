@@ -39,7 +39,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .build
-          key: spm-macos-${{ hashFiles('Package.swift', 'Package.resolved', '.scummvmengine-sha') }}
+          key: spm-macos-${{ hashFiles('Package.swift', 'Package.resolved', '.scummvmengine-sha', 'Sources/**', '!Sources/ScummVMEngine/**', 'Tests/**') }}
           restore-keys: |
             spm-macos-
 
@@ -73,7 +73,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .build
-          key: spm-ios-${{ hashFiles('Package.swift', 'Package.resolved', '.scummvmengine-sha') }}
+          key: spm-ios-${{ hashFiles('Package.swift', 'Package.resolved', '.scummvmengine-sha', 'Sources/**', '!Sources/ScummVMEngine/**', 'Tests/**') }}
           restore-keys: |
             spm-ios-
 
@@ -106,7 +106,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .build
-          key: spm-tvos-${{ hashFiles('Package.swift', 'Package.resolved', '.scummvmengine-sha') }}
+          key: spm-tvos-${{ hashFiles('Package.swift', 'Package.resolved', '.scummvmengine-sha', 'Sources/**', '!Sources/ScummVMEngine/**', 'Tests/**') }}
           restore-keys: |
             spm-tvos-
 

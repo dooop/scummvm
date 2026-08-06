@@ -276,6 +276,10 @@ let package = Package(
         // Macro-templated sprite-draw body – #include-d 12x by sprite.cpp with
         // different macros predefined each time, not a standalone TU
         "ScummVMEngine/engines/mads/core/sprite_0.cpp",
+        // Orphaned duplicate of dont_frag_the_palette()/sprite_free()/etc.,
+        // which sprite.cpp already defines itself; not #include-d or
+        // referenced anywhere, and collides as a standalone TU
+        "ScummVMEngine/engines/mads/core/sprite_k.cpp",
         // Buggy plugin stub – missing includes and wrong function names
         "ScummVMEngine/engines/ags/plugins/core/screen.cpp",
         // SDL3 backend – we use SDL2

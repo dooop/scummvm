@@ -33,6 +33,11 @@ SUBMODULE="$REPO_ROOT/Sources/ScummVMEngine"
 WORK_DIR="$(mktemp -d)"
 trap 'rm -rf "$WORK_DIR"' EXIT
 
+if [ "$(uname -m)" != "arm64" ]; then
+  echo "error: engine slices are supported only on Apple Silicon hosts" >&2
+  exit 1
+fi
+
 ARCHIVE_PATH="$WORK_DIR/$SLICE_ID.xcarchive"
 DERIVED_DATA="$WORK_DIR/DerivedData"
 FRAMEWORK="$OUTPUT_DIR/$SCHEME.framework"
@@ -78,24 +83,26 @@ xcodebuild archive \
   SKIP_INSTALL=NO \
   ONLY_ACTIVE_ARCH=NO \
   ARCHS=arm64 \
+  EXCLUDED_ARCHS=x86_64 \
   DEBUG_INFORMATION_FORMAT=dwarf \
   CODE_SIGNING_ALLOWED=NO \
   CODE_SIGNING_REQUIRED=NO
 
-# SwiftPM emits one static library per target, so the archive holds libScummVMEngine.a
-# alongside libScummVM<Platform>.a. Collect whatever landed rather than hardcoding
-# names, so this keeps working if the target split changes.
-LIB_DIR="$ARCHIVE_PATH/Products/usr/local/lib"
-ENGINE_ARCHIVES=()
-if [ -d "$LIB_DIR" ]; then
-  while IFS= read -r -d '' lib; do ENGINE_ARCHIVES+=("$lib"); done \
-    < <(find "$LIB_DIR" -maxdepth 1 -name '*.a' -print0)
-fi
-if [ "${#ENGINE_ARCHIVES[@]}" -eq 0 ]; then
-  echo "error: archive produced no static libraries under $LIB_DIR" >&2
-  exit 1
-fi
-echo "==> Engine archives: ${ENGINE_ARCHIVES[*]##*/}"
+# SwiftPM library targets archive as one relocatable object per target. Older
+# toolchains may emit static archives instead, so accept both forms while requiring
+# exactly the engine and platform-glue products we need.
+ENGINE_PRODUCTS=()
+for target in ScummVMEngine "$SCHEME"; do
+  product="$(find "$ARCHIVE_PATH/Products" -type f \
+    \( -name "$target.o" -o -name "lib$target.a" \) -print -quit)"
+  if [ -z "$product" ]; then
+    echo "error: archive did not contain $target.o or lib$target.a" >&2
+    find "$ARCHIVE_PATH/Products" -maxdepth 8 -type f -print >&2 || true
+    exit 1
+  fi
+  ENGINE_PRODUCTS+=("$product")
+done
+echo "==> Engine products: ${ENGINE_PRODUCTS[*]##*/}"
 
 # The third-party dependencies are remote binary targets. Resolve each one's slice for
 # this platform out of the SwiftPM artifact cache; their xcframeworks still carry
@@ -110,14 +117,16 @@ fi
 
 find_xcframework() {
   local name="$1"
-  local hit
+  local candidate
   for root in "$DERIVED_DATA/SourcePackages/artifacts" "$REPO_ROOT/.build/artifacts"; do
     [ -d "$root" ] || continue
-    hit="$(find "$root" -maxdepth 4 -type d -name "$name.xcframework" -print -quit)"
-    if [ -n "$hit" ]; then
-      echo "$hit"
-      return 0
-    fi
+    while IFS= read -r candidate; do
+      if [ -f "$candidate/Info.plist" ]; then
+        echo "$candidate"
+        return 0
+      fi
+    done < <(find "$root" -maxdepth 4 -type d -name "$name.xcframework" \
+      -not -path '*/__MACOSX/*' -print)
   done
   return 1
 }
@@ -176,12 +185,15 @@ else
   SYSTEM_FLAGS+=(-framework OpenGLES -framework UIKit)
 fi
 
-# force_load only the engine archives: nothing outside the dylib references the plugin
-# and detection tables, so without it the linker would drop most of the engine. The
-# third-party libraries link normally and contribute only what is actually used.
-FORCE_LOAD=()
-for archive in "${ENGINE_ARCHIVES[@]}"; do
-  FORCE_LOAD+=(-Wl,-force_load,"$archive")
+# Relocatable objects are linked directly and already contain every target object.
+# Static-archive output from older toolchains still needs force_load because nothing
+# outside the dylib references the plugin and detection tables.
+ENGINE_LINK_FLAGS=()
+for product in "${ENGINE_PRODUCTS[@]}"; do
+  case "$product" in
+    *.a) ENGINE_LINK_FLAGS+=(-Wl,-force_load,"$product") ;;
+    *)   ENGINE_LINK_FLAGS+=("$product") ;;
+  esac
 done
 
 echo "==> Linking $SCHEME dylib ($TRIPLE)"
@@ -192,7 +204,7 @@ xcrun --sdk "$SDK" clang++ \
   -isysroot "$(xcrun --sdk "$SDK" --show-sdk-path)" \
   -install_name "@rpath/$SCHEME.framework/$SCHEME" \
   -compatibility_version 1 -current_version 1 \
-  "${FORCE_LOAD[@]}" \
+  "${ENGINE_LINK_FLAGS[@]}" \
   "${THIRD_PARTY_LIBS[@]}" \
   "${SYSTEM_FLAGS[@]}" \
   -o "$DYLIB"
@@ -203,8 +215,10 @@ strip -x -S "$DYLIB"
 # tables from outside. If it ever stops working the link still succeeds and the app
 # simply finds no games at runtime, so check here rather than downstream.
 MISSING=0
+SYMBOLS_FILE="$WORK_DIR/$SCHEME.symbols"
+nm -gU "$DYLIB" > "$SYMBOLS_FILE"
 for symbol in ScummEngine SciEngine AGSEngine scummvm_main; do
-  if ! nm -gU "$DYLIB" 2>/dev/null | grep -q "$symbol"; then
+  if ! grep -q "$symbol" "$SYMBOLS_FILE"; then
     echo "error: '$symbol' missing from the linked dylib - engine objects were dropped" >&2
     MISSING=1
   fi

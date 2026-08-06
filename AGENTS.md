@@ -62,6 +62,7 @@
 
 ## Build and platform expectations
 - Supported platforms: iOS 17+, tvOS 17+, macOS 15+.
+- Supported architecture: Apple Silicon/arm64 only; Intel macOS and x86_64 simulators are unsupported.
 - Swift tools version: 6.0.
 - tvOS glue (`Sources/ScummVMtvOS/`) has distinct requirements from iOS and must be documented separately as it evolves.
 

@@ -30,6 +30,11 @@ OUTPUT_DIR="$(cd "$OUTPUT_DIR" && pwd)"
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 : > "$OUTPUT_DIR/checksums.txt"
 
+if [ "$(uname -m)" != "arm64" ]; then
+  echo "error: engine XCFrameworks are supported only on Apple Silicon hosts" >&2
+  exit 1
+fi
+
 # compute-checksum loads the manifest. In binary mode that manifest points at the
 # release this script is about to produce, so keep it in source mode here.
 export SCUMMVM_BUILD_FROM_SOURCE=1
@@ -44,6 +49,13 @@ build_xcframework() {
     local framework="$SLICES_DIR/$slice/$module.framework"
     if [ ! -d "$framework" ]; then
       echo "error: missing slice $slice for $module (expected $framework)" >&2
+      exit 1
+    fi
+    local binary="$framework/$module"
+    local architectures
+    architectures="$(lipo -archs "$binary")"
+    if [ "$architectures" != "arm64" ]; then
+      echo "error: $slice contains unsupported architectures: $architectures" >&2
       exit 1
     fi
     args+=(-framework "$framework")

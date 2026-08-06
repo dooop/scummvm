@@ -81,6 +81,9 @@ jobs:
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode_${{ env.XCODE_VERSION }}.app
 
+      - name: Require Apple Silicon
+        run: test "$(uname -m)" = arm64
+
       - name: Record submodule commit
         run: git -C Sources/ScummVMEngine rev-parse HEAD > .scummvmengine-sha
 
@@ -97,11 +100,11 @@ jobs:
 
       - name: Build (macOS)
         if: matrix.key == 'macos'
-        run: swift build -v
+        run: swift build
 
       - name: Run tests (macOS)
         if: matrix.key == 'macos'
-        run: swift test -v
+        run: swift test
 
       - name: Build ScummVM
         if: matrix.key != 'macos'
@@ -110,6 +113,7 @@ jobs:
             -scheme ScummVM \
             -destination "${{ matrix.destination }}" \
             -derivedDataPath .build/derivedData \
+            ARCHS=arm64 EXCLUDED_ARCHS=x86_64 \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO
 
   build-binary:
@@ -136,6 +140,9 @@ jobs:
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode_${{ env.XCODE_VERSION }}.app
 
+      - name: Require Apple Silicon
+        run: test "$(uname -m)" = arm64
+
       - name: Check that an engine release is referenced
         id: guard
         run: |
@@ -153,6 +160,7 @@ jobs:
             -scheme ScummVM \
             -destination "${{ matrix.destination }}" \
             -derivedDataPath .build/derivedData \
+            ARCHS=arm64 EXCLUDED_ARCHS=x86_64 \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO
 
       - name: Link and smoke-test ScummVMApp
@@ -179,8 +187,9 @@ jobs:
           # Engines are only reachable through the detection table, which nothing
           # outside the dylib references - a regression in the pipeline's force_load
           # would silently produce a framework that finds zero games.
+          nm -gU "$FRAMEWORK/ScummVMmacOS" > framework-symbols.txt
           for symbol in ScummEngine SciEngine AGSEngine; do
-            if ! nm -gU "$FRAMEWORK/ScummVMmacOS" 2>/dev/null | grep -q "$symbol"; then
+            if ! grep -q "$symbol" framework-symbols.txt; then
               echo "::error::engine symbol '$symbol' missing from the prebuilt framework"
               exit 1
             fi

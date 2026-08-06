@@ -50,7 +50,7 @@ Engine binary targets (binary mode only, from the `engineBinaryBaseURL` release)
 - `ScummVMiOS.xcframework` — slices `ios-arm64`, `ios-arm64-simulator`, `tvos-arm64`, `tvos-arm64-simulator`
 - `ScummVMmacOS.xcframework` — slice `macos-arm64`
 
-There are no `x86_64` slices: the engine does not build for that architecture in this package. Simulator builds therefore require an Apple Silicon host.
+The package supports Apple Silicon only. Every engine slice is arm64; Intel macOS and `x86_64` simulators are unsupported.
 
 Key entry points:
 - `ScummVM` SwiftUI view manages start/stop lifecycle and initializes the shared engine instance.
@@ -60,7 +60,7 @@ Key entry points:
 ## Requirements
 - Platforms: iOS 17+, tvOS 17+, macOS 15+.
 - Swift tools version: 6.0 (see `Package.swift`).
-- Apple Silicon host for simulator builds (no `x86_64` slices).
+- Apple Silicon host and target. Intel macOS and `x86_64` simulators are unsupported.
 - The `ScummVMEngine/` submodule is required only in source mode.
 - Internet access is required on first package resolve/build so SwiftPM can download the XCFramework zips from the pinned GitHub Releases (they are cached locally after download).
 - [ZIPFoundation](https://github.com/weichsel/ZIPFoundation) 0.9.20+ (declared as a Swift Package dependency in `Package.swift`).
@@ -88,6 +88,8 @@ gh workflow run release-engine.yml -f tag=engine-0.2.0
 ```
 
 The scripts it drives ([`Scripts/build-engine-slice.sh`](Scripts/build-engine-slice.sh), [`Scripts/make-engine-xcframework.sh`](Scripts/make-engine-xcframework.sh)) also run standalone. Each release carries a `SOURCES.txt` naming the exact upstream and wrapper commits the binaries were built from, which is what the GPL requires when distributing binaries.
+
+The release workflow validates the freshly assembled local XCFrameworks before publishing them. `SCUMMVM_ENGINE_ARTIFACTS_DIR` is reserved for that check and points binary mode at an XCFramework directory relative to the package root.
 
 ## Usage
 

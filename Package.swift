@@ -9,6 +9,9 @@ let binaryBaseURL = "https://github.com/dooop/swift-scummvm/releases/download/0.
 let engineBinaryBaseURL = "https://github.com/dooop/swift-scummvm/releases/download/engine-0.1.0"
 let engineChecksumiOS = "0000000000000000000000000000000000000000000000000000000000000000"
 let engineChecksummacOS = "0000000000000000000000000000000000000000000000000000000000000000"
+// Internal release validation can point binary mode at freshly assembled local
+// XCFrameworks before they are published. The path is relative to the package root.
+let localEngineArtifactsPath = ProcessInfo.processInfo.environment["SCUMMVM_ENGINE_ARTIFACTS_DIR"]
 
 // Consumers link the prebuilt engine: ~7,700 upstream translation units and the
 // 534 MB submodule checkout drop out of their build entirely.
@@ -1117,15 +1120,13 @@ let engineTargets: [Target] =
       ),
   ]
   : [
-    scummVMBinaryTarget(
+    scummVMEngineBinaryTarget(
       name: "ScummVMiOS",
-      checksum: engineChecksumiOS,
-      baseURL: engineBinaryBaseURL
+      checksum: engineChecksumiOS
     ),
-    scummVMBinaryTarget(
+    scummVMEngineBinaryTarget(
       name: "ScummVMmacOS",
-      checksum: engineChecksummacOS,
-      baseURL: engineBinaryBaseURL
+      checksum: engineChecksummacOS
     ),
   ]
 
@@ -1204,4 +1205,18 @@ func scummVMBinaryTarget(
     name: name,
     url: url,
     checksum: checksum)
+}
+
+func scummVMEngineBinaryTarget(name: String, checksum: String) -> Target {
+  if let localEngineArtifactsPath {
+    return .binaryTarget(
+      name: name,
+      path: "\(localEngineArtifactsPath)/\(name).xcframework"
+    )
+  }
+  return scummVMBinaryTarget(
+    name: name,
+    checksum: checksum,
+    baseURL: engineBinaryBaseURL
+  )
 }

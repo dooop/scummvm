@@ -128,6 +128,9 @@ let package = Package(
         // Override: fixes a U32String/String comparison mismatch (pre-existing
         // upstream bug, unrelated to this package's configuration)
         "ScummVMEngine/gui/downloaddlcsdialog.cpp",
+        // Override: isImGuiRecorderEnabled() turned into a free function
+        // (see override file for why a header-only fix doesn't work here)
+        "ScummVMEngine/gui/EventRecorder.cpp",
         "ScummVMEngine/common/updates.cpp",
         "ScummVMEngine/backends/taskbar",
         "ScummVMEngine/backends/fs/android",

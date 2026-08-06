@@ -1,4 +1,4 @@
-// swift-tools-version:6.0
+// swift-tools-version:5.9
 import PackageDescription
 
 let binaryBaseURL = "https://github.com/dooop/swift-scummvm/releases/download/0.2.0"
@@ -1143,8 +1143,12 @@ let package = Package(
 func scummVMBinaryTarget(
   name: String,
   checksum: String,
-  baseURL: String = binaryBaseURL
-) -> Target {
+  baseURL: String = binaryBaseURL,
+  local: Bool = true) -> Target {
+  if local {
+      return .binaryTarget(name: name, path: "Frameworks/\(name).xcframework")
+  }
+    
   let url = "\(baseURL)/\(name).xcframework.zip"
   return .binaryTarget(
     name: name,

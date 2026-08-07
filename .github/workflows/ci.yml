@@ -102,10 +102,6 @@ jobs:
         if: matrix.key == 'macos'
         run: swift build
 
-      - name: Run tests (macOS)
-        if: matrix.key == 'macos'
-        run: swift test
-
       - name: Build ScummVM
         if: matrix.key != 'macos'
         run: |
@@ -162,6 +158,10 @@ jobs:
             -derivedDataPath .build/derivedData \
             ARCHS=arm64 EXCLUDED_ARCHS=x86_64 \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO
+
+      - name: Run tests against the prebuilt engine (macOS)
+        if: steps.guard.outputs.ready == 'true' && matrix.name == 'macOS'
+        run: swift test
 
       - name: Link and smoke-test ScummVMApp
         if: steps.guard.outputs.ready == 'true' && matrix.name == 'macOS'

@@ -10,7 +10,7 @@
 
 #if os(macOS)
   import AppKit
-  import XCTest
+  @preconcurrency import XCTest
 
   @preconcurrency import ScummVMmacOS
 

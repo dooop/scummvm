@@ -13,7 +13,7 @@
 #if os(macOS)
   import AppKit
   import SwiftUI
-  import XCTest
+  @preconcurrency import XCTest
 
   import ScummVM
   @preconcurrency import ScummVMmacOS

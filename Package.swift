@@ -1187,7 +1187,13 @@ let package = Package(
     ),
     .testTarget(
       name: "ScummVMTests",
-      dependencies: ["ScummVM"]
+      dependencies: [
+        "ScummVM",
+        // Only macOS runs `swift test` in CI (see ci.yml's build-binary job), and
+        // only against the prebuilt engine - exercising the ObjC facade directly
+        // requires this import on that platform.
+        .target(name: "ScummVMmacOS", condition: .when(platforms: [.macOS])),
+      ]
     ),
   ] + engineTargets,
   cLanguageStandard: .c11,

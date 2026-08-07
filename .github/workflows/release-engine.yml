@@ -94,7 +94,7 @@ jobs:
         run: tar -cf "slice-${{ matrix.slice }}.tar" -C slices "${{ matrix.slice }}"
 
       - name: Upload slice
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: slice-${{ matrix.slice }}
           path: slice-${{ matrix.slice }}.tar

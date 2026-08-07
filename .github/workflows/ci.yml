@@ -18,10 +18,59 @@ env:
   XCODE_VERSION: "16.4"
 
 jobs:
-  build-macos:
-    name: Build & Test (macOS)
+  changes:
+    name: Detect engine changes
+    runs-on: ubuntu-latest
+    outputs:
+      engine: ${{ steps.filter.outputs.engine }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check whether a source build is needed
+        id: filter
+        run: |
+          # Wrapper-only changes are covered by the binary-mode job; the ~7,700-TU
+          # source build only has to run when engine-facing inputs move.
+          if [ "${{ github.event_name }}" != "pull_request" ]; then
+            echo "engine=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          BASE="origin/${{ github.base_ref }}"
+          git fetch --no-tags --depth=1 origin "${{ github.base_ref }}"
+          CHANGED="$(git diff --name-only "$BASE"...HEAD)"
+          echo "$CHANGED"
+          if echo "$CHANGED" | grep -qE '^(Package\.swift|Sources/ScummVMEngine$|Sources/ScummVMEngineOverrides/|Sources/ScummVMiOS/|Sources/ScummVMmacOS/|Scripts/|\.gitmodules)'; then
+            echo "engine=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "engine=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  build-source:
+    name: Source build (${{ matrix.name }})
+    needs: changes
+    if: needs.changes.outputs.engine == 'true'
     runs-on: macos-15
-    timeout-minutes: 90
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS
+            key: macos
+            destination: ""
+          - name: iOS
+            key: ios
+            destination: "generic/platform=iOS"
+          - name: tvOS
+            key: tvos
+            destination: "generic/platform=tvOS"
+    env:
+      # Compile the engine from the submodule instead of consuming the release build:
+      # this job exists precisely to validate engine, override and glue changes.
+      SCUMMVM_BUILD_FROM_SOURCE: "1"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -32,6 +81,9 @@ jobs:
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode_${{ env.XCODE_VERSION }}.app
 
+      - name: Require Apple Silicon
+        run: test "$(uname -m)" = arm64
+
       - name: Record submodule commit
         run: git -C Sources/ScummVMEngine rev-parse HEAD > .scummvmengine-sha
 
@@ -39,78 +91,110 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .build
-          key: spm-macos-v2-${{ hashFiles('Package.swift', 'Package.resolved', '.scummvmengine-sha', 'Sources/**', '!Sources/ScummVMEngine/**', 'Tests/**') }}
+          # Resources are excluded from the hash: they only move with the submodule,
+          # which .scummvmengine-sha already covers, and hashing 86 MB is slow.
+          key: spm-${{ matrix.key }}-v3-${{ hashFiles('Package.swift', 'Package.resolved', '.scummvmengine-sha', 'Sources/**', '!Sources/ScummVMEngine/**', '!Sources/ScummVMResources*/**', 'Tests/**') }}
 
       - name: Resolve package dependencies
         run: swift package resolve
 
-      - name: Build (ScummVM library + ScummVMApp)
-        run: swift build -v
+      - name: Build (macOS)
+        if: matrix.key == 'macos'
+        run: swift build
 
-      - name: Run tests
-        run: swift test -v
+      - name: Run tests (macOS)
+        if: matrix.key == 'macos'
+        run: swift test
 
-  build-ios:
-    name: Build (iOS)
+      - name: Build ScummVM
+        if: matrix.key != 'macos'
+        run: |
+          xcodebuild build \
+            -scheme ScummVM \
+            -destination "${{ matrix.destination }}" \
+            -derivedDataPath .build/derivedData \
+            ARCHS=arm64 EXCLUDED_ARCHS=x86_64 \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO
+
+  build-binary:
+    name: Binary build (${{ matrix.name }})
     runs-on: macos-15
-    timeout-minutes: 90
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS
+            destination: "generic/platform=macOS"
+          - name: iOS
+            destination: "generic/platform=iOS"
+          - name: tvOS
+            destination: "generic/platform=tvOS"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          submodules: recursive
+          # No submodule: this job exercises exactly what a consumer gets.
           fetch-depth: 1
 
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode_${{ env.XCODE_VERSION }}.app
 
-      - name: Record submodule commit
-        run: git -C Sources/ScummVMEngine rev-parse HEAD > .scummvmengine-sha
+      - name: Require Apple Silicon
+        run: test "$(uname -m)" = arm64
 
-      - name: Cache SwiftPM build artifacts
-        uses: actions/cache@v4
-        with:
-          path: .build
-          key: spm-ios-v2-${{ hashFiles('Package.swift', 'Package.resolved', '.scummvmengine-sha', 'Sources/**', '!Sources/ScummVMEngine/**', 'Tests/**') }}
+      - name: Check that an engine release is referenced
+        id: guard
+        run: |
+          if grep -q 'engineChecksumiOS = "0\{64\}"' Package.swift; then
+            echo "::notice::Package.swift still carries placeholder engine checksums - run the release-engine workflow and bump them. Skipping."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
 
-      - name: Build ScummVM for iOS
+      - name: Build ScummVM against the prebuilt engine
+        if: steps.guard.outputs.ready == 'true'
         run: |
           xcodebuild build \
             -scheme ScummVM \
-            -destination "generic/platform=iOS" \
+            -destination "${{ matrix.destination }}" \
             -derivedDataPath .build/derivedData \
+            ARCHS=arm64 EXCLUDED_ARCHS=x86_64 \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO
 
-  build-tvos:
-    name: Build (tvOS)
-    runs-on: macos-15
-    timeout-minutes: 90
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
-          fetch-depth: 1
-
-      - name: Select Xcode
-        run: sudo xcode-select -s /Applications/Xcode_${{ env.XCODE_VERSION }}.app
-
-      - name: Record submodule commit
-        run: git -C Sources/ScummVMEngine rev-parse HEAD > .scummvmengine-sha
-
-      - name: Cache SwiftPM build artifacts
-        uses: actions/cache@v4
-        with:
-          path: .build
-          key: spm-tvos-v2-${{ hashFiles('Package.swift', 'Package.resolved', '.scummvmengine-sha', 'Sources/**', '!Sources/ScummVMEngine/**', 'Tests/**') }}
-
-      - name: Build ScummVM for tvOS
+      - name: Link and smoke-test ScummVMApp
+        if: steps.guard.outputs.ready == 'true' && matrix.name == 'macOS'
         run: |
-          xcodebuild build \
-            -scheme ScummVM \
-            -destination "generic/platform=tvOS" \
-            -derivedDataPath .build/derivedData \
-            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO
+          swift build --product ScummVMApp -c release
+          BIN_PATH="$(swift build --product ScummVMApp -c release --show-bin-path)"
+
+          FRAMEWORK="$(find "$BIN_PATH" -maxdepth 2 -name 'ScummVMmacOS.framework' -print -quit)"
+          if [ -z "$FRAMEWORK" ]; then
+            echo "::error::ScummVMmacOS.framework was not placed next to the executable"
+            exit 1
+          fi
+
+          # The payload rides inside the framework in binary mode. If it is missing the
+          # app builds and launches, then fails to find any theme or engine data.
+          for file in engine-data/engine_data_core.mk scummmodern.zip translations.dat pred.dic; do
+            if [ ! -e "$FRAMEWORK/Resources/$file" ]; then
+              echo "::error::missing runtime resource: $file"
+              exit 1
+            fi
+          done
+
+          # Engines are only reachable through the detection table, which nothing
+          # outside the dylib references - a regression in the pipeline's force_load
+          # would silently produce a framework that finds zero games.
+          nm -gU "$FRAMEWORK/ScummVMmacOS" > framework-symbols.txt
+          for symbol in ScummEngine SciEngine AGSEngine; do
+            if ! grep -q "$symbol" framework-symbols.txt; then
+              echo "::error::engine symbol '$symbol' missing from the prebuilt framework"
+              exit 1
+            fi
+          done
+          echo "framework, payload and engine symbols OK"
 
   build-android:
     name: Build (Android AAR)

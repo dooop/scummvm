@@ -4,9 +4,13 @@
 # distributable XCFrameworks, zips them and prints the SwiftPM checksums that go into
 # Package.swift.
 #
-# Two XCFrameworks rather than one: a framework's module name is its bundle name, and
-# the Swift sources import ScummVMiOS on iOS/tvOS but ScummVMmacOS on macOS. An
-# XCFramework cannot mix bundle names across slices.
+# Three XCFrameworks rather than one: a framework's module name is its bundle name, and
+# an XCFramework cannot mix bundle names across slices, so macOS was always separate
+# from iOS/tvOS. iOS and tvOS are split further from each other so a consumer of one
+# platform doesn't pay to download the other's slices - SwiftPM has no partial-fetch
+# for binary targets, it always downloads the whole zip. build-engine-slice.sh builds
+# the tvOS slices from the ScummVMiOS Xcode scheme/source but stamps them out as a
+# distinct ScummVMtvOS.framework product for exactly this reason.
 #
 # Note that the runtime payload is duplicated once per slice - that is inherent to the
 # XCFramework layout, where every slice is a complete framework bundle.
@@ -76,7 +80,8 @@ build_xcframework() {
   echo "    $module.xcframework.zip  $(du -h "$OUTPUT_DIR/$module.xcframework.zip" | cut -f1)  $checksum"
 }
 
-build_xcframework ScummVMiOS ios-arm64 ios-arm64-simulator tvos-arm64 tvos-arm64-simulator
+build_xcframework ScummVMiOS ios-arm64 ios-arm64-simulator
+build_xcframework ScummVMtvOS tvos-arm64 tvos-arm64-simulator
 build_xcframework ScummVMmacOS macos-arm64
 
 # GPLv2+: the binaries must be traceable to the exact sources they were built from.

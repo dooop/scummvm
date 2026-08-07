@@ -11,22 +11,27 @@
 # The dylib also absorbs the third-party static libraries and links the system
 # frameworks itself, so the consumer's package graph shrinks to two artifacts.
 #
-# usage: build-engine-slice.sh <scheme> <slice-id> <output-dir>
-#   scheme     ScummVMiOS | ScummVMmacOS  (also the framework and module name)
-#   slice-id   ios-arm64 | ios-arm64-simulator | tvos-arm64 |
-#              tvos-arm64-simulator | macos-arm64
-#   output-dir receives <scheme>.framework
+# usage: build-engine-slice.sh <scheme> <slice-id> <output-dir> [product-name]
+#   scheme       ScummVMiOS | ScummVMmacOS  (Xcode scheme to archive)
+#   slice-id     ios-arm64 | ios-arm64-simulator | tvos-arm64 |
+#                tvos-arm64-simulator | macos-arm64
+#   output-dir   receives <product-name>.framework
+#   product-name output framework/module name, defaults to scheme. Lets the tvOS
+#                slices ship as a distinct ScummVMtvOS.framework built from the
+#                ScummVMiOS Xcode target/source, so iOS and tvOS can be published as
+#                two separate XCFrameworks instead of one that bundles both.
 #
 set -euo pipefail
 
-if [ "$#" -ne 3 ]; then
-  sed -n '2,19p' "$0" >&2
+if [ "$#" -lt 3 ] || [ "$#" -gt 4 ]; then
+  sed -n '2,22p' "$0" >&2
   exit 2
 fi
 
 SCHEME="$1"
 SLICE_ID="$2"
 OUTPUT_DIR="$3"
+PRODUCT="${4:-$SCHEME}"
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SUBMODULE="$REPO_ROOT/Sources/ScummVMEngine"
@@ -40,7 +45,7 @@ fi
 
 ARCHIVE_PATH="$WORK_DIR/$SLICE_ID.xcarchive"
 DERIVED_DATA="$WORK_DIR/DerivedData"
-FRAMEWORK="$OUTPUT_DIR/$SCHEME.framework"
+FRAMEWORK="$OUTPUT_DIR/$PRODUCT.framework"
 
 # The manifest defaults to consuming the prebuilt engine; the release pipeline is the
 # one place that has to compile it.
@@ -202,7 +207,7 @@ xcrun --sdk "$SDK" clang++ \
   -dynamiclib \
   -target "$TRIPLE" \
   -isysroot "$(xcrun --sdk "$SDK" --show-sdk-path)" \
-  -install_name "@rpath/$SCHEME.framework/$SCHEME" \
+  -install_name "@rpath/$PRODUCT.framework/$PRODUCT" \
   -compatibility_version 1 -current_version 1 \
   "${ENGINE_LINK_FLAGS[@]}" \
   "${THIRD_PARTY_LIBS[@]}" \
@@ -225,7 +230,7 @@ for symbol in ScummEngine SciEngine AGSEngine scummvm_main; do
 done
 [ "$MISSING" -eq 0 ] || exit 1
 
-echo "==> Assembling $SCHEME.framework"
+echo "==> Assembling $PRODUCT.framework"
 rm -rf "$FRAMEWORK"
 if [ "$IS_MACOS" -eq 1 ]; then
   # macOS requires the versioned bundle layout.
@@ -239,11 +244,11 @@ else
 fi
 mkdir -p "$BUNDLE_ROOT/Headers" "$BUNDLE_ROOT/Modules" "$RESOURCES"
 
-cp "$DYLIB" "$BUNDLE_ROOT/$SCHEME"
+cp "$DYLIB" "$BUNDLE_ROOT/$PRODUCT"
 cp "$REPO_ROOT/Sources/$SCHEME/include/ScummVMEngine.h" "$BUNDLE_ROOT/Headers/"
 
 cat > "$BUNDLE_ROOT/Modules/module.modulemap" <<EOF
-framework module $SCHEME {
+framework module $PRODUCT {
   header "ScummVMEngine.h"
   export *
 }
@@ -289,10 +294,10 @@ cat > "$PLIST" <<EOF
 <plist version="1.0">
 <dict>
   <key>CFBundleDevelopmentRegion</key><string>en</string>
-  <key>CFBundleExecutable</key><string>$SCHEME</string>
-  <key>CFBundleIdentifier</key><string>dev.dooop.swift-scummvm.$SCHEME</string>
+  <key>CFBundleExecutable</key><string>$PRODUCT</string>
+  <key>CFBundleIdentifier</key><string>dev.dooop.swift-scummvm.$PRODUCT</string>
   <key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
-  <key>CFBundleName</key><string>$SCHEME</string>
+  <key>CFBundleName</key><string>$PRODUCT</string>
   <key>CFBundlePackageType</key><string>FMWK</string>
   <key>CFBundleShortVersionString</key><string>1.0</string>
   <key>CFBundleVersion</key><string>1</string>
@@ -306,11 +311,11 @@ EOF
 
 if [ "$IS_MACOS" -eq 1 ]; then
   ln -s A "$FRAMEWORK/Versions/Current"
-  ln -s "Versions/Current/$SCHEME" "$FRAMEWORK/$SCHEME"
+  ln -s "Versions/Current/$PRODUCT" "$FRAMEWORK/$PRODUCT"
   ln -s Versions/Current/Headers "$FRAMEWORK/Headers"
   ln -s Versions/Current/Modules "$FRAMEWORK/Modules"
   ln -s Versions/Current/Resources "$FRAMEWORK/Resources"
 fi
 
 echo "==> Done: $FRAMEWORK"
-echo "    binary $(du -h "$BUNDLE_ROOT/$SCHEME" | cut -f1), bundle $(du -sh "$FRAMEWORK" | cut -f1), upstream $ENGINE_SHA"
+echo "    binary $(du -h "$BUNDLE_ROOT/$PRODUCT" | cut -f1), bundle $(du -sh "$FRAMEWORK" | cut -f1), upstream $ENGINE_SHA"

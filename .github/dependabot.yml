@@ -1,0 +1,20 @@
+version: 2
+updates:
+  # Keep CI workflow actions up to date (ci.yml, release-engine.yml).
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+
+  # Keep SwiftPM dependencies (e.g. ZIPFoundation) up to date.
+  - package-ecosystem: "swift"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+
+  # Keep the upstream ScummVM submodule up to date. Source-mode CI catches
+  # breaking changes; follow the scummvm-submodule-sync skill before merging.
+  - package-ecosystem: "gitsubmodule"
+    directory: "/"
+    schedule:
+      interval: "weekly"

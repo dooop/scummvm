@@ -25,7 +25,7 @@ jobs:
       engine: ${{ steps.filter.outputs.engine }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -73,7 +73,7 @@ jobs:
       SCUMMVM_BUILD_FROM_SOURCE: "1"
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           submodules: recursive
           fetch-depth: 1
@@ -88,7 +88,7 @@ jobs:
         run: git -C Sources/ScummVMEngine rev-parse HEAD > .scummvmengine-sha
 
       - name: Cache SwiftPM build artifacts
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: .build
           # Resources are excluded from the hash: they only move with the submodule,
@@ -101,10 +101,6 @@ jobs:
       - name: Build (macOS)
         if: matrix.key == 'macos'
         run: swift build
-
-      - name: Run tests (macOS)
-        if: matrix.key == 'macos'
-        run: swift test
 
       - name: Build ScummVM
         if: matrix.key != 'macos'
@@ -132,7 +128,7 @@ jobs:
             destination: "generic/platform=tvOS"
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           # No submodule: this job exercises exactly what a consumer gets.
           fetch-depth: 1
@@ -162,6 +158,10 @@ jobs:
             -derivedDataPath .build/derivedData \
             ARCHS=arm64 EXCLUDED_ARCHS=x86_64 \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO
+
+      - name: Run tests against the prebuilt engine (macOS)
+        if: steps.guard.outputs.ready == 'true' && matrix.name == 'macOS'
+        run: swift test
 
       - name: Link and smoke-test ScummVMApp
         if: steps.guard.outputs.ready == 'true' && matrix.name == 'macOS'

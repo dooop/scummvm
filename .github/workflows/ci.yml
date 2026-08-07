@@ -226,7 +226,14 @@ jobs:
         uses: android-actions/setup-android@v3
 
       - name: Install NDK ${{ env.NDK_VERSION }}
-        run: sdkmanager --install "ndk;${NDK_VERSION}"
+        run: |
+          sdkmanager --install "ndk;${NDK_VERSION}"
+          # The runner image pre-sets ANDROID_NDK_ROOT/HOME to its bundled
+          # default NDK, which build.gradle.kts's resolveNdkDir() prefers over
+          # the SDK-relative path -- repoint them at the pinned version we
+          # just installed so the wrong NDK doesn't win.
+          echo "ANDROID_NDK_ROOT=${ANDROID_SDK_ROOT}/ndk/${NDK_VERSION}" >> "$GITHUB_ENV"
+          echo "ANDROID_NDK_HOME=${ANDROID_SDK_ROOT}/ndk/${NDK_VERSION}" >> "$GITHUB_ENV"
 
       - name: Record submodule commit
         run: git -C Sources/ScummVMEngine rev-parse HEAD > .scummvmengine-sha

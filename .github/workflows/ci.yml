@@ -25,7 +25,7 @@ jobs:
       engine: ${{ steps.filter.outputs.engine }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -73,7 +73,7 @@ jobs:
       SCUMMVM_BUILD_FROM_SOURCE: "1"
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           submodules: recursive
           fetch-depth: 1
@@ -128,7 +128,7 @@ jobs:
             destination: "generic/platform=tvOS"
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           # No submodule: this job exercises exactly what a consumer gets.
           fetch-depth: 1

@@ -2,7 +2,7 @@
 import Foundation
 import PackageDescription
 
-let binaryBaseURL = "https://github.com/dooop/swift-scummvm/releases/download/0.2.0"
+let binaryBaseURL = "https://github.com/dooop/swift-scummvm/releases/download/0.4.2"
 
 // Prebuilt ScummVM engine + platform glue. Published by .github/workflows/release-engine.yml;
 // bump the tag and both checksums together when a new engine build ships.

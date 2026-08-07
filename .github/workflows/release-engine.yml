@@ -7,8 +7,8 @@ name: Release engine XCFrameworks
 # XCFrameworks.
 #
 # Trigger with a tag (engine-1.2.3) or manually. After the release exists, bump
-# engineBinaryBaseURL and both checksums in Package.swift - the job prints them and
-# opens a PR when run with bump_manifest.
+# engineBinaryBaseURL and all three checksums in Package.swift - the job prints them
+# and opens a PR when run with bump_manifest.
 
 on:
   push:
@@ -43,16 +43,25 @@ jobs:
         include:
           # x86_64 is deliberately absent: the engine does not build for it in this
           # package, so simulator slices are arm64-only and require Apple Silicon hosts.
+          #
+          # tvOS slices build from the ScummVMiOS scheme/source but publish under the
+          # ScummVMtvOS product name, so iOS and tvOS ship as two separate XCFrameworks
+          # instead of one that bundles both (see make-engine-xcframework.sh).
           - slice: ios-arm64
             scheme: ScummVMiOS
+            product: ScummVMiOS
           - slice: ios-arm64-simulator
             scheme: ScummVMiOS
+            product: ScummVMiOS
           - slice: tvos-arm64
             scheme: ScummVMiOS
+            product: ScummVMtvOS
           - slice: tvos-arm64-simulator
             scheme: ScummVMiOS
+            product: ScummVMtvOS
           - slice: macos-arm64
             scheme: ScummVMmacOS
+            product: ScummVMmacOS
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -76,7 +85,8 @@ jobs:
           Scripts/build-engine-slice.sh \
             "${{ matrix.scheme }}" \
             "${{ matrix.slice }}" \
-            "slices/${{ matrix.slice }}"
+            "slices/${{ matrix.slice }}" \
+            "${{ matrix.product }}"
 
       - name: Pack slice
         # upload-artifact dereferences symlinks, which would flatten the macOS
@@ -178,6 +188,7 @@ jobs:
             while read -r module checksum; do
               case "$module" in
                 ScummVMiOS)   echo "let engineChecksumiOS = \"${checksum}\"" ;;
+                ScummVMtvOS)  echo "let engineChecksumtvOS = \"${checksum}\"" ;;
                 ScummVMmacOS) echo "let engineChecksummacOS = \"${checksum}\"" ;;
               esac
             done < dist/checksums.txt
@@ -188,6 +199,7 @@ jobs:
             --title "$TAG" \
             --notes-file release-notes.md \
             dist/ScummVMiOS.xcframework.zip \
+            dist/ScummVMtvOS.xcframework.zip \
             dist/ScummVMmacOS.xcframework.zip \
             dist/SOURCES.txt
 
@@ -198,12 +210,14 @@ jobs:
           TAG: ${{ steps.tag.outputs.value }}
         run: |
           IOS_SUM="$(awk '$1=="ScummVMiOS"{print $2}' dist/checksums.txt)"
+          TVOS_SUM="$(awk '$1=="ScummVMtvOS"{print $2}' dist/checksums.txt)"
           MAC_SUM="$(awk '$1=="ScummVMmacOS"{print $2}' dist/checksums.txt)"
           BASE_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}"
 
           /usr/bin/sed -i '' \
             -e "s|^let engineBinaryBaseURL = .*|let engineBinaryBaseURL = \"${BASE_URL}\"|" \
             -e "s|^let engineChecksumiOS = .*|let engineChecksumiOS = \"${IOS_SUM}\"|" \
+            -e "s|^let engineChecksumtvOS = .*|let engineChecksumtvOS = \"${TVOS_SUM}\"|" \
             -e "s|^let engineChecksummacOS = .*|let engineChecksummacOS = \"${MAC_SUM}\"|" \
             Package.swift
 

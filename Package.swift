@@ -5,9 +5,10 @@ import PackageDescription
 let binaryBaseURL = "https://github.com/dooop/swift-scummvm/releases/download/0.2.0"
 
 // Prebuilt ScummVM engine + platform glue. Published by .github/workflows/release-engine.yml;
-// bump the tag and both checksums together when a new engine build ships.
+// bump the tag and all three checksums together when a new engine build ships.
 let engineBinaryBaseURL = "https://github.com/dooop/swift-scummvm/releases/download/0.4.2"
 let engineChecksumiOS = "238b9cd03284176879fd38188d30b21c06d8c3b05583de5c2b9c359e12179701"
+let engineChecksumtvOS = ""
 let engineChecksummacOS = "6727196410139af4041a4a3a10cbdcdb922b54f3f2c51d1a3aa4ee6b6a941135"
 // Internal release validation can point binary mode at freshly assembled local
 // XCFrameworks before they are published. The path is relative to the package root.
@@ -22,16 +23,13 @@ let localEngineArtifactsPath = ProcessInfo.processInfo.environment["SCUMMVM_ENGI
 // not by environment, so run `swift package reset` when flipping the switch.
 let buildEngineFromSource = ProcessInfo.processInfo.environment["SCUMMVM_BUILD_FROM_SOURCE"] != nil
 
-// ScummVMtvOS exists in both modes, so its resource rules cannot live in the
-// mode-specific target block below. Resource rules take no platform/mode condition,
-// hence the array swap.
-let tvOSResources: [Resource] =
-  buildEngineFromSource
-  ? [
-    .process("../ScummVMEngine/dists/tvos/Images.xcassets"),
-    .copy("../ScummVMEngine/dists/tvos/PrivacyInfo.xcprivacy"),
-  ]
-  : []
+// Source-mode-only resource rules for the ScummVMtvOS re-export target (see its
+// definition in engineTargets below). Binary mode ships a real ScummVMtvOS
+// XCFramework instead, with these assets already baked into its Resources.
+let tvOSResources: [Resource] = [
+  .process("../ScummVMEngine/dists/tvos/Images.xcassets"),
+  .copy("../ScummVMEngine/dists/tvos/PrivacyInfo.xcprivacy"),
+]
 
 // Engine + platform glue: compiled from the submodule in source mode, downloaded as
 // prebuilt dynamic-framework XCFrameworks otherwise. The two modes are mutually
@@ -1021,6 +1019,13 @@ let engineTargets: [Target] =
           .unsafeFlags(["-fno-objc-arc"]),
         ]
       ),
+      .target(
+        name: "ScummVMtvOS",
+        dependencies: [
+          "ScummVMiOS"
+        ],
+        resources: tvOSResources
+      ),
 
       scummVMBinaryTarget(
         name: "a52",
@@ -1125,6 +1130,10 @@ let engineTargets: [Target] =
       checksum: engineChecksumiOS
     ),
     scummVMEngineBinaryTarget(
+      name: "ScummVMtvOS",
+      checksum: engineChecksumtvOS
+    ),
+    scummVMEngineBinaryTarget(
       name: "ScummVMmacOS",
       checksum: engineChecksummacOS
     ),
@@ -1166,7 +1175,7 @@ let package = Package(
       dependencies: [
         .product(name: "ZIPFoundation", package: "ZIPFoundation"),
         .target(name: "ScummVMmacOS", condition: .when(platforms: [.macOS])),
-        .target(name: "ScummVMiOS", condition: .when(platforms: [.iOS, .tvOS])),
+        .target(name: "ScummVMiOS", condition: .when(platforms: [.iOS])),
         .target(name: "ScummVMtvOS", condition: .when(platforms: [.tvOS])),
       ]
     ),
@@ -1175,16 +1184,6 @@ let package = Package(
       dependencies: [
         .target(name: "ScummVM", condition: .when(platforms: [.macOS]))
       ]
-    ),
-    .target(
-      name: "ScummVMtvOS",
-      dependencies: [
-        "ScummVMiOS"
-      ],
-      // Source mode reads the tvOS assets straight from the submodule. In binary mode
-      // they are baked into the tvOS slices of ScummVMiOS.xcframework, and the
-      // submodule path does not exist.
-      resources: tvOSResources
     ),
     .testTarget(
       name: "ScummVMTests",

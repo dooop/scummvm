@@ -49,6 +49,12 @@ static BOOL SCVMArgumentsContainValue(NSArray<NSString *> *arguments, NSString *
     return NO;
 }
 
+// Deliberately rooted at the main bundle even in binary mode, where the runtime payload
+// lives inside the prebuilt framework: on iOS/tvOS resourcePath *is* the .app root, so
+// the recursive scan reaches Frameworks/ScummVMiOS.framework, and the relative path it
+// returns stays valid for the appbundle:/ virtual paths built below. (macOS differs -
+// there resourcePath is Contents/Resources and the framework sits outside it, which is
+// why the macOS counterpart searches the framework bundle explicitly.)
 static NSString *SCVMFindBundleRelativeDirectoryContainingFile(NSString *fileName) {
     NSString *root = NSBundle.mainBundle.resourcePath;
     if (root.length == 0) {

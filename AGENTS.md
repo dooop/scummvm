@@ -14,6 +14,13 @@
 - `Sources/ScummVMiOS/` and `Sources/ScummVMmacOS/` contain ObjC++ platform glue.
 - `Sources/ScummVMiOS/include/ScummVMEngine.h` and `Sources/ScummVMmacOS/include/ScummVMEngine.h` are the public ObjC APIs.
 - `Sources/ScummVMtvOS/` is a distinct tvOS glue target with its own requirements (not a copy of iOS).
+- The runtime payload (engine-data, themes, soundfonts, platform assets) always comes from the submodule - via SwiftPM resource rules in source mode, baked into the framework by the release pipeline in binary mode.
+- `Scripts/build-engine-slice.sh` and `Scripts/make-engine-xcframework.sh` produce the prebuilt engine XCFrameworks.
+
+## Build modes
+- Default is **binary mode**: `ScummVMiOS`/`ScummVMmacOS` resolve to prebuilt XCFrameworks and the submodule is not needed.
+- Set `SCUMMVM_BUILD_FROM_SOURCE=1` to compile the engine from the submodule. Required for engine, override, glue or build-flag changes. Run `swift package reset` when switching.
+- Engine-affecting changes reach consumers only after `.github/workflows/release-engine.yml` publishes a new release and `Package.swift` is bumped.
 - [ZIPFoundation](https://github.com/weichsel/ZIPFoundation) 0.9.20+ is a Swift Package dependency used by `ScummVMGamePathResolver` for archive extraction.
 
 ## Skills
@@ -55,6 +62,7 @@
 
 ## Build and platform expectations
 - Supported platforms: iOS 17+, tvOS 17+, macOS 15+.
+- Supported architecture: Apple Silicon/arm64 only; Intel macOS and x86_64 simulators are unsupported.
 - Swift tools version: 6.0.
 - tvOS glue (`Sources/ScummVMtvOS/`) has distinct requirements from iOS and must be documented separately as it evolves.
 

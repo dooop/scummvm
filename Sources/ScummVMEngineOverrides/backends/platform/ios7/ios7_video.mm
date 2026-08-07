@@ -98,6 +98,17 @@ static NSBundle *scummVMIOSModuleResourceBundle() {
 		}
 #endif
 
+		// Binary builds ship the asset catalog inside the prebuilt framework, where
+		// SWIFTPM_MODULE_BUNDLE does not exist. bundleForClass: resolves to that
+		// framework; in a static source build it resolves to the main bundle, which the
+		// name probes below cover anyway.
+		NSBundle *frameworkBundle = [NSBundle bundleForClass:[iPhoneView class]];
+		if (frameworkBundle != nil &&
+		    [frameworkBundle pathForResource:@"Images" ofType:@"xcassets"] != nil) {
+			cachedBundle = frameworkBundle;
+			return;
+		}
+
 		NSArray<NSString *> *candidateBundleNames = @[
 			@"swift_scummvm_ScummVMiOS.bundle",
 			@"swift-scummvm_ScummVMiOS.bundle",

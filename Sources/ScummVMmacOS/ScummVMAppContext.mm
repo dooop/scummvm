@@ -129,8 +129,7 @@ static NSString *SCVMFindConfiguredTargetForGamePath(NSString *gamePath) {
     return nil;
 }
 
-static NSString *SCVMFindAbsoluteDirectoryContainingFile(NSString *fileName) {
-    NSString *root = NSBundle.mainBundle.resourcePath;
+static NSString *SCVMFindAbsoluteDirectoryContainingFileInRoot(NSString *fileName, NSString *root) {
     if (root.length == 0) {
         return nil;
     }
@@ -151,6 +150,27 @@ static NSString *SCVMFindAbsoluteDirectoryContainingFile(NSString *fileName) {
         }
 
         return [absolutePath stringByDeletingLastPathComponent];
+    }
+
+    return nil;
+}
+
+static NSString *SCVMFindAbsoluteDirectoryContainingFile(NSString *fileName) {
+    // Two possible homes for the runtime payload. Source builds link statically and
+    // ship it as a SwiftPM resource bundle under Contents/Resources. Binary builds get
+    // it from inside the prebuilt framework, which lives in Contents/Frameworks -
+    // outside mainBundle.resourcePath, so scanning the main bundle alone misses it.
+    NSBundle *frameworkBundle = [NSBundle bundleForClass:ScummVMAppContext.class];
+    NSArray<NSString *> *roots = @[
+        frameworkBundle.resourcePath ?: @"",
+        NSBundle.mainBundle.resourcePath ?: @""
+    ];
+
+    for (NSString *root in roots) {
+        NSString *directory = SCVMFindAbsoluteDirectoryContainingFileInRoot(fileName, root);
+        if (directory.length > 0) {
+            return directory;
+        }
     }
 
     return nil;

@@ -171,6 +171,42 @@ fun resolveNdkDir(): File {
 }
 
 // ---------------------------------------------------------------------------
+// Oboe
+// ---------------------------------------------------------------------------
+// Upstream's Android mixer backend links against Oboe (`-loboe`, appended by
+// `configure` for the android host; see backends/mixer/android/android-mixer.cpp
+// and configure's android host block). It isn't part of the submodule, and
+// this build shells out to upstream's own configure/make rather than
+// reimplementing it via AGP's native/CMake integration, so there is no
+// automatic Prefab wiring -- fetch the AAR from Google's Maven repository
+// ourselves and pass its headers/libs to configure via CPPFLAGS/LDFLAGS.
+val oboeVersion = "1.10.0"
+
+val oboe: Configuration by configurations.creating {
+    isCanBeConsumed = false
+    isCanBeResolved = true
+}
+
+dependencies {
+    oboe("com.google.oboe:oboe:$oboeVersion")
+}
+
+val oboeDir: Provider<Directory> = layout.buildDirectory.dir("oboe")
+
+val extractOboe = tasks.register<Copy>("extractOboe") {
+    group = "scummvm"
+    description = "Unpacks the Oboe AAR's Prefab headers and per-ABI libraries."
+    from({ project.zipTree(oboe.singleFile) })
+    into(oboeDir)
+}
+
+fun oboeIncludeDir(): Provider<String> =
+    oboeDir.map { it.dir("prefab/modules/oboe/include").asFile.absolutePath }
+
+fun oboeLibDir(abi: String): Provider<String> =
+    oboeDir.map { it.dir("prefab/modules/oboe/libs/android.$abi").asFile.absolutePath }
+
+// ---------------------------------------------------------------------------
 // Task types
 // ---------------------------------------------------------------------------
 
@@ -247,6 +283,10 @@ abstract class ScummVMConfigure : DefaultTask() {
 
     @get:Input abstract val ndkDir: Property<String>
 
+    @get:Input abstract val oboeIncludeDir: Property<String>
+
+    @get:Input abstract val oboeLibDir: Property<String>
+
     @get:Internal abstract val configurePath: Property<String>
 
     @get:Internal abstract val nativeBuildDir: DirectoryProperty
@@ -268,6 +308,10 @@ abstract class ScummVMConfigure : DefaultTask() {
             commandLine(args)
             environment("ANDROID_SDK_ROOT", sdkDir.get())
             environment("ANDROID_NDK_ROOT", ndkDir.get())
+            // Picked up by configure (folded into CXXFLAGS/LDFLAGS and baked
+            // into the generated config.mk) so android-mixer.cpp finds Oboe.
+            environment("CPPFLAGS", "-I${oboeIncludeDir.get()}")
+            environment("LDFLAGS", "-L${oboeLibDir.get()}")
         }
     }
 }
@@ -329,9 +373,12 @@ val nativeLibraryTasks: Map<String, TaskProvider<ScummVMMake>> =
                 extraArgs.set(configureArgs)
                 sdkDir.set(sdkDirProvider)
                 ndkDir.set(ndkDirProvider)
+                oboeIncludeDir.set(oboeIncludeDir())
+                oboeLibDir.set(oboeLibDir(abi))
                 configurePath.set(File(upstreamDir, "configure").absolutePath)
                 nativeBuildDir.set(nativeBuild)
                 configMk.set(nativeBuild.map { it.file("config.mk") })
+                dependsOn(extractOboe)
             }
 
             tasks.register<ScummVMMake>("buildScummVM$suffix") {

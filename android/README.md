@@ -151,6 +151,10 @@ buildScummVM<Abi>       →  make -j libscummvm.so
 stageScummVMJniLibs     →  jni/<abi>/libscummvm.so
 ```
 
+The same staging task also packages Oboe's `liboboe.so` for each selected ABI.
+ScummVM links to Oboe dynamically, so both shared libraries must be present in
+the AAR and final APK.
+
 `make` is left to decide what is stale, so the build task never reports
 up-to-date; use the prebuilt escape hatch below when iterating on Kotlin.
 

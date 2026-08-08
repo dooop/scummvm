@@ -467,8 +467,9 @@ val stageAssets = tasks.register<StageFiles>("stageScummVMAssets") {
 
 val stageJniLibs = tasks.register<StageFiles>("stageScummVMJniLibs") {
     group = "scummvm"
-    description = "Stages libscummvm.so for every configured ABI into jniLibs."
+    description = "Stages ScummVM and its Oboe runtime dependency into jniLibs."
     writeChecksums.set(false)
+    dependsOn(extractOboe)
 
     if (prebuiltLibsDir != null) {
         val root = file(prebuiltLibsDir)
@@ -486,6 +487,14 @@ val stageJniLibs = tasks.register<StageFiles>("stageScummVMJniLibs") {
             entries.put("$abi/libscummvm.so", library.map { it.asFile.absolutePath })
             sourceFiles.from(library)
         }
+    }
+
+    abis.forEach { abi ->
+        val library = oboeDir.map {
+            it.file("prefab/modules/oboe/libs/android.$abi/liboboe.so").asFile
+        }
+        entries.put("$abi/liboboe.so", library.map { it.absolutePath })
+        sourceFiles.from(library)
     }
 }
 

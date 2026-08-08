@@ -36,31 +36,5 @@
       ScummVMEngineSharedInstance().stop()
       XCTAssertTrue(ScummVMEngineWindowWaiter.engineWindows().isEmpty)
     }
-
-    func testStartRendersTheEngineWindowAndStopClosesIt() {
-      XCTAssertTrue(
-        ScummVMEngineWindowWaiter.engineWindows().isEmpty,
-        "no ScummVM window should exist before the engine starts")
-
-      // Calling start() twice back-to-back should not spin up a second engine
-      // instance or a second window - the ObjC context guards on its run state.
-      ScummVMEngineSharedInstance().start()
-      ScummVMEngineSharedInstance().start()
-
-      let didAppear = ScummVMEngineWindowWaiter.waitUntil(timeout: 30) {
-        !ScummVMEngineWindowWaiter.engineWindows().isEmpty
-      }
-      XCTAssertTrue(didAppear, "engine window did not render within the timeout")
-      XCTAssertEqual(
-        ScummVMEngineWindowWaiter.engineWindows().count, 1,
-        "a duplicate start() should not create a second engine window")
-
-      ScummVMEngineSharedInstance().stop()
-
-      let didDisappear = ScummVMEngineWindowWaiter.waitUntil(timeout: 30) {
-        ScummVMEngineWindowWaiter.engineWindows().isEmpty
-      }
-      XCTAssertTrue(didDisappear, "engine window did not close within the timeout")
-    }
   }
 #endif

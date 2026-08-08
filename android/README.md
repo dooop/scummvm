@@ -9,21 +9,32 @@ from the `Sources/ScummVMEngine` git submodule and is never modified.
 android/
 ├── settings.gradle.kts
 ├── gradle/libs.versions.toml
+├── app/                         ← Compose test app, produces the APK
+│   ├── build.gradle.kts         ← debug/local and release/AAR selection
+│   ├── libs/                    ← default location for an uploaded AAR
+│   └── src/main/kotlin/de/doop/scummvm/
 └── scummvm/                     ← the library module, produces the AAR
     ├── build.gradle.kts         ← native build + asset staging + packaging
     ├── consumer-rules.pro
     └── src/main/
         ├── java/org/scummvm/scummvm/   ← one shim for an upstream declaration
         └── kotlin/
-            ├── org/scummvm/compose/    ← the public Compose API
+            ├── de/doop/scummvm/        ← the public Compose API
             └── org/scummvm/scummvm/    ← glue that needs upstream package access
 ```
+
+The library namespace, public Compose API, application ID, and Activity package
+are `de.doop.scummvm`. The test app uses `de.doop.scummvm.app` only for its
+generated-code namespace because Android Gradle rejects an app and a consumed
+AAR with identical namespaces. The JNI compatibility classes must remain in
+`org.scummvm.scummvm`: upstream's native backend looks them up by that exact
+binary name, including when a prebuilt `libscummvm.so` is used.
 
 ## Usage
 
 ```kotlin
-import org.scummvm.compose.ScummVM
-import org.scummvm.compose.ScummVMConfiguration
+import de.doop.scummvm.ScummVM
+import de.doop.scummvm.ScummVMConfiguration
 
 setContent {
     ScummVM(
@@ -93,6 +104,40 @@ cd android && ./gradlew :scummvm:assembleRelease
 
 The AAR lands in `android/scummvm/build/outputs/aar/`.
 
+### Test app build modes
+
+The `:app` module opens ScummVM's launcher in a full-screen Compose host. Its
+engine dependency follows the Android build type:
+
+| App build | Engine dependency |
+|---|---|
+| `debug` | Local `:scummvm` project, including the local native engine build |
+| `release` | Prebuilt AAR, so the app can test an artifact downloaded from CI or a release |
+
+Build and install the local debug version:
+
+```bash
+./gradlew :app:installDebug
+```
+
+For release, copy an uploaded artifact to `app/libs/scummvm-release.aar` and
+build normally:
+
+```bash
+./gradlew :app:assembleRelease
+```
+
+The artifact can also remain anywhere on disk:
+
+```bash
+./gradlew :app:assembleRelease \
+  -Pscummvm.releaseAar=/absolute/path/to/scummvm-release.aar
+```
+
+Release builds fail early with a focused message when the AAR is missing. A
+flat AAR has no dependency metadata, so the app declares the wrapper's AndroidX,
+Compose, and coroutine runtime dependencies itself.
+
 ### How the native build works
 
 There is no CMake or `ndk-build` reimplementation of ScummVM here. Rebuilding
@@ -131,7 +176,8 @@ Iterating on the Kotlin layer without rebuilding the engine:
 `.github/workflows/ci.yml` has a `build-android` job on `ubuntu-latest`. It
 installs the pinned NDK, builds `arm64-v8a` with a representative subset of
 engines (a full engine build does not fit comfortably in a CI run), caches the
-native build directory against the submodule SHA, and uploads the AAR.
+native build directory against the submodule SHA, builds the release test app
+against the just-produced AAR, and uploads both artifacts.
 
 ## How upstream code is reused
 

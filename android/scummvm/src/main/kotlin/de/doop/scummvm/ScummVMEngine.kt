@@ -1,4 +1,4 @@
-package org.scummvm.compose
+package de.doop.scummvm
 
 import android.app.Activity
 import android.content.Context
@@ -13,9 +13,9 @@ import android.view.inputmethod.InputMethodManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import org.scummvm.compose.internal.ScummVMAssets
-import org.scummvm.compose.internal.ScummVMInput
-import org.scummvm.compose.internal.ScummVMPaths
+import de.doop.scummvm.internal.ScummVMAssets
+import de.doop.scummvm.internal.ScummVMInput
+import de.doop.scummvm.internal.ScummVMPaths
 import org.scummvm.scummvm.ScummVM
 import org.scummvm.scummvm.ScummVMHost
 import org.scummvm.scummvm.ScummVMHostDelegate

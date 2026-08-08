@@ -1,4 +1,4 @@
-package org.scummvm.compose
+package de.doop.scummvm
 
 import android.annotation.SuppressLint
 import android.content.Context
@@ -21,7 +21,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import org.scummvm.compose.internal.ScummVMInput
+import de.doop.scummvm.internal.ScummVMInput
 
 /**
  * The surface the engine renders into.

@@ -1,4 +1,4 @@
-package org.scummvm.compose.internal
+package de.doop.scummvm.internal
 
 import android.content.Context
 import android.view.GestureDetector
@@ -7,7 +7,7 @@ import android.view.KeyCharacterMap
 import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.View
-import org.scummvm.compose.ScummVMTouchMode
+import de.doop.scummvm.ScummVMTouchMode
 import org.scummvm.scummvm.ScummVM
 
 /**

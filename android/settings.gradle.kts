@@ -23,3 +23,4 @@ dependencyResolutionManagement {
 rootProject.name = "scummvm-android"
 
 include(":scummvm")
+include(":app")

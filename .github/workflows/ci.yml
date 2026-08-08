@@ -261,9 +261,22 @@ jobs:
             -Pscummvm.abis="${SCUMMVM_ABIS}" \
             -Pscummvm.configureArgs="${SCUMMVM_CONFIGURE_ARGS}"
 
+      - name: Build release test app from the AAR
+        working-directory: android
+        run: |
+          ./gradlew --no-daemon :app:assembleRelease \
+            -Pscummvm.releaseAar="${GITHUB_WORKSPACE}/android/scummvm/build/outputs/aar/scummvm-release.aar"
+
       - name: Upload AAR
         uses: actions/upload-artifact@v4
         with:
           name: scummvm-android-aar
           path: android/scummvm/build/outputs/aar/*.aar
+          if-no-files-found: error
+
+      - name: Upload test APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: scummvm-android-test-app
+          path: android/app/build/outputs/apk/release/*.apk
           if-no-files-found: error

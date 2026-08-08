@@ -1,4 +1,4 @@
-package org.scummvm.compose.internal
+package de.doop.scummvm.internal
 
 import android.content.Context
 import java.io.File

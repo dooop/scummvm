@@ -63,7 +63,7 @@ val prebuiltLibsDir: String? = providers.gradleProperty("scummvm.prebuiltLibsDir
     ?.takeIf(String::isNotBlank)
 
 android {
-    namespace = "org.scummvm.compose"
+    namespace = "de.doop.scummvm"
     compileSdk {
         version = release(36)
     }

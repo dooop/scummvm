@@ -170,6 +170,36 @@ fun resolveNdkDir(): File {
     return dir
 }
 
+fun resolveCxxRuntime(abi: String): File {
+    // A fully self-contained prebuilt directory may supply the runtime used to
+    // link its libraries. Prefer that exact copy when it is available.
+    prebuiltLibsDir?.let { root ->
+        val alongside = File(root, "$abi/libc++_shared.so")
+        if (alongside.isFile) return alongside
+    }
+
+    val targetTriple = when (abi) {
+        "armeabi-v7a" -> "arm-linux-androideabi"
+        "arm64-v8a" -> "aarch64-linux-android"
+        "x86" -> "i686-linux-android"
+        "x86_64" -> "x86_64-linux-android"
+        else -> error("Unsupported Android ABI: $abi")
+    }
+    val prebuiltRoot = File(resolveNdkDir(), "toolchains/llvm/prebuilt")
+    val runtime = prebuiltRoot.listFiles()
+        .orEmpty()
+        .asSequence()
+        .filter(File::isDirectory)
+        .map { host -> File(host, "sysroot/usr/lib/$targetTriple/libc++_shared.so") }
+        .firstOrNull(File::isFile)
+
+    return requireNotNull(runtime) {
+        "libc++_shared.so for $abi was not found under ${prebuiltRoot.path}.\n" +
+            "Install the required NDK or place it next to the prebuilt engine at " +
+            "<scummvm.prebuiltLibsDir>/$abi/libc++_shared.so."
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Oboe
 // ---------------------------------------------------------------------------
@@ -467,7 +497,7 @@ val stageAssets = tasks.register<StageFiles>("stageScummVMAssets") {
 
 val stageJniLibs = tasks.register<StageFiles>("stageScummVMJniLibs") {
     group = "scummvm"
-    description = "Stages ScummVM and its Oboe runtime dependency into jniLibs."
+    description = "Stages ScummVM, Oboe, and the shared C++ runtime into jniLibs."
     writeChecksums.set(false)
     dependsOn(extractOboe)
 
@@ -490,11 +520,15 @@ val stageJniLibs = tasks.register<StageFiles>("stageScummVMJniLibs") {
     }
 
     abis.forEach { abi ->
-        val library = oboeDir.map {
+        val oboeLibrary = oboeDir.map {
             it.file("prefab/modules/oboe/libs/android.$abi/liboboe.so").asFile
         }
-        entries.put("$abi/liboboe.so", library.map { it.absolutePath })
-        sourceFiles.from(library)
+        entries.put("$abi/liboboe.so", oboeLibrary.map { it.absolutePath })
+        sourceFiles.from(oboeLibrary)
+
+        val cxxRuntime = providers.provider { resolveCxxRuntime(abi) }
+        entries.put("$abi/libc++_shared.so", cxxRuntime.map { it.absolutePath })
+        sourceFiles.from(cxxRuntime)
     }
 }
 

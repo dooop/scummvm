@@ -151,8 +151,9 @@ buildScummVM<Abi>       →  make -j libscummvm.so
 stageScummVMJniLibs     →  jni/<abi>/libscummvm.so
 ```
 
-The same staging task also packages Oboe's `liboboe.so` for each selected ABI.
-ScummVM links to Oboe dynamically, so both shared libraries must be present in
+The same staging task also packages Oboe's `liboboe.so` and the NDK's
+`libc++_shared.so` for each selected ABI. ScummVM links to Oboe dynamically, and
+Oboe links to the shared C++ runtime, so all three libraries must be present in
 the AAR and final APK.
 
 `make` is left to decide what is stale, so the build task never reports
@@ -167,7 +168,7 @@ Set in `gradle.properties` or on the command line with `-P`.
 | `scummvm.abis` | `arm64-v8a,x86_64` | Comma-separated ABIs. `armeabi-v7a` and `x86` additionally need the NDK cpufeatures sources. |
 | `scummvm.configureArgs` | *(empty)* | Extra `./configure` flags, e.g. `--disable-all-engines --enable-engine=scumm,sky`. Empty means every stable engine — a long build. |
 | `scummvm.buildJobs` | *(CPU count)* | `make -j` parallelism. |
-| `scummvm.prebuiltLibsDir` | *(unset)* | Skip the native build and package `<dir>/<abi>/libscummvm.so` instead. |
+| `scummvm.prebuiltLibsDir` | *(unset)* | Skip the native build and package `<dir>/<abi>/libscummvm.so` instead. An optional adjacent `libc++_shared.so` is preferred over the pinned NDK copy. |
 
 Iterating on the Kotlin layer without rebuilding the engine:
 

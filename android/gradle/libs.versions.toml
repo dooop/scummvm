@@ -1,14 +1,14 @@
 [versions]
 # Kept in step with what upstream's dists/android/build.gradle pins, so the two
 # builds agree on the toolchain they expect to find.
-agp = "9.2.1"
-kotlin = "2.2.20"
-composeBom = "2025.09.00"
-androidxAnnotation = "1.9.1"
-androidxActivity = "1.10.1"
-androidxCore = "1.15.0"
-androidxLifecycle = "2.9.4"
-coroutines = "1.10.2"
+agp = "9.3.1"
+kotlin = "2.4.10"
+composeBom = "2026.06.01"
+androidxAnnotation = "1.10.0"
+androidxActivity = "1.13.0"
+androidxCore = "1.19.0"
+androidxLifecycle = "2.11.0"
+coroutines = "1.11.0"
 
 [libraries]
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "androidxActivity" }

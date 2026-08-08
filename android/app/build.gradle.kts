@@ -12,14 +12,14 @@ android {
     // package remain de.doop.scummvm.
     namespace = "de.doop.scummvm.app"
     compileSdk {
-        version = release(36)
+        version = release(37)
     }
     enableKotlin = true
 
     defaultConfig {
         applicationId = "de.doop.scummvm"
-        minSdk = 21
-        targetSdk = 36
+        minSdk = 23
+        targetSdk = 37
         versionCode = 1
         versionName = "1.0"
     }

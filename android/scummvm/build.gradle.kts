@@ -340,8 +340,11 @@ abstract class ScummVMConfigure : DefaultTask() {
             environment("ANDROID_NDK_ROOT", ndkDir.get())
             // Picked up by configure (folded into CXXFLAGS/LDFLAGS and baked
             // into the generated config.mk) so android-mixer.cpp finds Oboe.
+            // max-page-size=16384 keeps libscummvm.so's own LOAD segments
+            // 16 KB-aligned for Android 15+ devices, independent of whether
+            // the pinned NDK/toolchain defaults to that alignment.
             environment("CPPFLAGS", "-I${oboeIncludeDir.get()}")
-            environment("LDFLAGS", "-L${oboeLibDir.get()}")
+            environment("LDFLAGS", "-L${oboeLibDir.get()} -Wl,-z,max-page-size=16384")
         }
     }
 }

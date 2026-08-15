@@ -210,7 +210,7 @@ jobs:
       SCUMMVM_CONFIGURE_ARGS: "--disable-all-engines --enable-engine=scumm,sky,sword1,agi"
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           submodules: recursive
           fetch-depth: 1

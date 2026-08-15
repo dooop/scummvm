@@ -53,6 +53,7 @@ gh workflow run release-engine.yml -f tag=engine-0.2.0
 ## Non-negotiable rules
 
 - **Never modify anything under `scummvm/`.** It is a git submodule of upstream `scummvm/scummvm` and must remain untouched — no edits, deletions, or reformatting.
+- `Sources/ScummVMEngine` is a tracked compatibility symlink to `../scummvm`; treat it as the same read-only upstream tree. SwiftPM needs the alias to keep Xcode native targets scoped under `Sources/`.
 - All changes must live in wrapper/glue code, `Package.swift`, or `android/`.
 - If a build issue requires changing upstream source, add a replacement translation unit under `Sources/ScummVMEngineOverrides/` at the mirrored path and exclude the original upstream file in `Package.swift`'s `exclude` list. This is the *only* sanctioned way to alter engine behavior.
 - Overrides must be minimal diffs from the upstream original (to keep future submodule resyncs tractable) — change only what's necessary, don't rewrite.

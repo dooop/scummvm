@@ -26,7 +26,7 @@ SwiftPM caches the parsed manifest by content, not by environment, so run `swift
 
 ## Architecture
 - [`ScummVM`](Sources/ScummVM/) (SwiftUI target) exposes the public Swift UI.
-- [`ScummVMEngine`](scummvm/) (C/C++ target, source mode only) wraps the upstream submodule and build flags.
+- [`ScummVMEngine`](scummvm/) (C/C++ target, source mode only) wraps the upstream submodule and build flags. SwiftPM reaches the root checkout through the tracked `Sources/ScummVMEngine` compatibility symlink so Xcode can keep its native targets scoped under `Sources/`.
 - [`ScummVMiOS`](Sources/ScummVMiOS/) and [`ScummVMmacOS`](Sources/ScummVMmacOS/) provide platform glue. In source mode these are ObjC++ targets; in binary mode the same names resolve to the prebuilt XCFrameworks, so every dependent target's dependency list is identical either way.
 - [`ScummVMtvOS`](Sources/ScummVMtvOS/) — in source mode, a thin Swift target that re-exports `ScummVMiOS` via `@_exported import`. In binary mode it's its own prebuilt XCFramework, built from the same `ScummVMiOS` source but published separately so a tvOS-only (or iOS-only) consumer isn't forced to download the other platform's slices.
 - The runtime payload (engine-data, themes, soundfonts, asset catalogs, privacy manifests) always comes from the submodule: in source mode through SwiftPM resource rules, in binary mode because the release pipeline copies it into the framework bundle. Nothing is checked into this repo.

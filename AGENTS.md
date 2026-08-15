@@ -8,6 +8,7 @@
 ## Structure map
 - `Package.swift` defines Swift Package targets, exclusions, and build flags.
 - `scummvm/` is the upstream ScummVM git submodule (do not edit).
+- `Sources/ScummVMEngine` is a tracked SwiftPM compatibility symlink to `../scummvm` (do not edit through it).
 - `Sources/ScummVM/` contains SwiftUI wrappers (`ScummVM`, `ScummVMView`, `ScummVMViewModel`, `ScummVMGamePathResolver`).
 - `scummvm/` contains the shared upstream engine sources.
 - `Sources/ScummVMEngineOverrides/` contains replacement translation units for build fixes.
@@ -38,6 +39,7 @@
 
 ## Non-negotiable rules (read first)
 - Never modify anything under `scummvm/`. It is a git submodule of upstream ScummVM.
+- Treat `Sources/ScummVMEngine` as the same read-only upstream tree; it is only a symlink used to keep SwiftPM targets scoped under `Sources/`.
 - Never delete, reformat, or "fix" upstream sources. Keep upstream code intact.
 - All changes must be in wrapper/glue code or in `Package.swift`.
 - If a build issue requires source changes, add a replacement file in `Sources/ScummVMEngineOverrides/` and exclude the upstream file in `Package.swift`.

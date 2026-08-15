@@ -43,6 +43,8 @@ setContent {
             // null opens ScummVM's own launcher
             target = null,
             gamesDirectory = File(filesDir, "games"),
+            // Optional content:// URI for a .zip or .scummvm document.
+            gameUri = selectedDocumentUri,
         ),
         onExit = { exitCode -> finish() },
     )
@@ -57,7 +59,7 @@ Public API surface, intentionally small and mirroring the Swift package's
 | `ScummVM` | Composable. Starts the engine on appear, stops it on dispose. |
 | `ScummVMView` | Composable. Just hosts the surface and forwards input; you drive the lifecycle. |
 | `ScummVMEngine` | The engine facade: `state`, `currentGame`, `setPaused`, `setTouchMode`, `stop`. |
-| `ScummVMConfiguration` | Start-up options (target, games directory, extra arguments). |
+| `ScummVMConfiguration` | Start-up options (target, game archive URI, games directory, extra arguments). |
 | `ScummVMState` | `Idle` / `PreparingData` / `Running` / `Stopped` / `Failed`. |
 | `ScummVMTouchMode` | `Touchpad` / `DirectMouse` / `Gamepad`. |
 
@@ -85,13 +87,14 @@ Prerequisites:
 * JDK 17 or newer.
 * Android SDK, with `sdk.dir` in `android/local.properties` or `ANDROID_SDK_ROOT`
   exported.
-* **NDK 23.2.8568313, exactly.** Upstream's `configure` greps `ndkVersion` out of
-  `Sources/ScummVMEngine/dists/android/build.gradle` and aborts on any mismatch.
-  The build reads the required revision from that same file, so it stays correct
-  across submodule bumps.
+* **NDK 29.0.14206865 by default (r28 or newer is required).** These revisions
+  build 16 KB-compatible ELF libraries and provide a compatible
+  `libc++_shared.so`. Upstream's standalone Android project still pins r23; the
+  wrapper generates a build-local copy of `configure` that relaxes only that
+  exact-version check. The submodule remains untouched.
 
   ```sh
-  "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" "ndk;23.2.8568313"
+  "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" "ndk;29.0.14206865"
   ```
 
 * The submodule: `git submodule update --init --recursive`.
@@ -138,6 +141,24 @@ Release builds fail early with a focused message when the AAR is missing. A
 flat AAR has no dependency metadata, so the app declares the wrapper's AndroidX,
 Compose, and coroutine runtime dependencies itself.
 
+### Importing `.scummvm` game archives
+
+Pass a document URI returned by `ActivityResultContracts.OpenDocument()` as
+`ScummVMConfiguration(gameUri = uri)`. Both `.scummvm` and `.zip` are treated as
+ZIP containers, extracted off the UI thread into
+`<filesDir>/ScummVM/ImportedArchives`, and launched with ScummVM auto-detection.
+The extractor rejects path traversal and ignores the macOS `__MACOSX` folder.
+The sample app also accepts these files through Android's **Open with** and
+**Share** actions.
+
+```kotlin
+val picker = rememberLauncherForActivityResult(
+    ActivityResultContracts.OpenDocument(),
+) { uri -> /* show ScummVM with ScummVMConfiguration(gameUri = uri) */ }
+
+picker.launch(arrayOf("application/zip", "application/octet-stream"))
+```
+
 ### How the native build works
 
 There is no CMake or `ndk-build` reimplementation of ScummVM here. Rebuilding
@@ -165,10 +186,11 @@ Set in `gradle.properties` or on the command line with `-P`.
 
 | Property | Default | Meaning |
 |---|---|---|
+| `scummvm.ndkVersion` | `29.0.14206865` | NDK used for the engine and packaged C++ runtime. Must be r28 or newer. |
 | `scummvm.abis` | `arm64-v8a,x86_64` | Comma-separated ABIs. `armeabi-v7a` and `x86` additionally need the NDK cpufeatures sources. |
 | `scummvm.configureArgs` | *(empty)* | Extra `./configure` flags, e.g. `--disable-all-engines --enable-engine=scumm,sky`. Empty means every stable engine — a long build. |
 | `scummvm.buildJobs` | *(CPU count)* | `make -j` parallelism. |
-| `scummvm.prebuiltLibsDir` | *(unset)* | Skip the native build and package `<dir>/<abi>/libscummvm.so` instead. An optional adjacent `libc++_shared.so` is preferred over the pinned NDK copy. |
+| `scummvm.prebuiltLibsDir` | *(unset)* | Skip the native build and package `<dir>/<abi>/libscummvm.so` instead. An optional adjacent 16 KB-compatible `libc++_shared.so` is preferred over the selected NDK copy. |
 
 Iterating on the Kotlin layer without rebuilding the engine:
 

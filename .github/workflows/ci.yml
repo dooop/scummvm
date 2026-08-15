@@ -201,9 +201,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 120
     env:
-      # Upstream's configure greps this out of dists/android/build.gradle and
-      # aborts on any mismatch, so it has to be the exact revision.
-      NDK_VERSION: "23.2.8568313"
+      # NDK r28+ makes all linked libraries and libc++ compatible with 16 KB pages.
+      NDK_VERSION: "29.0.14206865"
       # A representative slice of engines: enough to exercise configure, the
       # NDK toolchain, JNI wiring and packaging without a two-hour full build.
       # Drop scummvm.configureArgs to build every stable engine.
@@ -252,8 +251,7 @@ jobs:
             ~/.gradle/wrapper
           key: gradle-${{ hashFiles('android/**/*.gradle.kts', 'android/gradle/libs.versions.toml', 'android/gradle/wrapper/gradle-wrapper.properties') }}
 
-      # The build resolves the NDK from $ANDROID_HOME/ndk/<version>, with the
-      # version read out of the submodule's dists/android/build.gradle.
+      # The build resolves the selected NDK from $ANDROID_HOME/ndk/<version>.
       - name: Build AAR
         working-directory: android
         run: |

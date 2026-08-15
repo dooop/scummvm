@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import de.doop.scummvm.internal.ScummVMAssets
+import de.doop.scummvm.internal.ScummVMGamePathResolver
 import de.doop.scummvm.internal.ScummVMInput
 import de.doop.scummvm.internal.ScummVMPaths
 import org.scummvm.scummvm.ScummVM
@@ -45,6 +46,7 @@ class ScummVMEngine internal constructor(
 
     private val appContext: Context = context.applicationContext
     private val paths = ScummVMPaths(appContext)
+    private val gamePathResolver = ScummVMGamePathResolver(appContext.contentResolver, paths)
     private val mainHandler = Handler(Looper.getMainLooper())
 
     private val _state = MutableStateFlow<ScummVMState>(ScummVMState.Idle)
@@ -188,10 +190,14 @@ class ScummVMEngine internal constructor(
     }
 
     private fun prepareAndLaunch(host: ScummVMHost) {
-        val assetsUpdated = try {
+        val prepared = try {
             updateAudioDefaults()
-            paths.ensureConfiguration(configuration.gamesDirectory)
-            ScummVMAssets.extractIfNeeded(appContext.assets, paths)
+            val gameDirectory = gamePathResolver.resolve(configuration.gameUri)
+            paths.ensureConfiguration(gameDirectory ?: configuration.gamesDirectory)
+            PreparedLaunch(
+                assetsUpdated = ScummVMAssets.extractIfNeeded(appContext.assets, paths),
+                gameDirectory = gameDirectory,
+            )
         } catch (e: Throwable) {
             Log.e(TAG, "Failed to prepare ScummVM data", e)
             mainHandler.post { _state.value = ScummVMState.Failed(e) }
@@ -204,8 +210,8 @@ class ScummVMEngine internal constructor(
             return
         }
 
-        host.setAssetsUpdated(assetsUpdated)
-        host.setArgs(buildArguments())
+        host.setAssetsUpdated(prepared.assetsUpdated)
+        host.setArgs(buildArguments(prepared.gameDirectory))
 
         // 8 MB, as upstream uses: some engines recurse deeply.
         val engineThread = Thread(null, host, "ScummVM", ENGINE_STACK_SIZE)
@@ -214,9 +220,14 @@ class ScummVMEngine internal constructor(
         engineThread.start()
     }
 
-    private fun buildArguments(): Array<String> = buildList {
+    private fun buildArguments(gameDirectory: java.io.File?): Array<String> = buildList {
         add("ScummVM")
-        configuration.target?.let { add(it) }
+        if (gameDirectory != null) {
+            add("--path=${gameDirectory.absolutePath}")
+            add("--auto-detect")
+        } else {
+            configuration.target?.let { add(it) }
+        }
         addAll(configuration.extraArguments)
     }.toTypedArray()
 
@@ -316,6 +327,11 @@ class ScummVMEngine internal constructor(
         /** Process-wide: the native engine can only be initialised once. */
         val engineClaimed = AtomicBoolean(false)
     }
+
+    private data class PreparedLaunch(
+        val assetsUpdated: Boolean,
+        val gameDirectory: java.io.File?,
+    )
 }
 
 internal tailrec fun Context.findActivity(): Activity? = when (this) {

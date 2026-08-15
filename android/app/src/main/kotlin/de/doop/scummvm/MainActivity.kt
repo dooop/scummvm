@@ -1,5 +1,7 @@
 package de.doop.scummvm
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
@@ -21,8 +23,10 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
+        val gameUri = intent.gameDocumentUri()
+
         setContent {
-            val engine = rememberScummVMEngine()
+            val engine = rememberScummVMEngine(ScummVMConfiguration(gameUri = gameUri))
             val state by engine.stateAsState()
 
             Box(
@@ -53,6 +57,13 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+}
+
+@Suppress("DEPRECATION")
+private fun Intent?.gameDocumentUri(): Uri? = when (this?.action) {
+    Intent.ACTION_VIEW -> data
+    Intent.ACTION_SEND -> getParcelableExtra(Intent.EXTRA_STREAM) as? Uri
+    else -> null
 }
 
 @androidx.compose.runtime.Composable

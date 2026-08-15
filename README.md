@@ -66,7 +66,7 @@ The Android wrapper lives in [`android/`](android/README.md) and is a separate G
 cd android && ./gradlew :scummvm:assembleRelease
 ```
 
-It produces an AAR containing `libscummvm.so` (built from the same submodule via upstream's own `configure`/`make`), the JNI-facing upstream Java classes, ScummVM's runtime data as assets, and a Compose `ScummVM` composable. It needs JDK 17+, the Android SDK, and **NDK 23.2.8568313 exactly** — upstream's `configure` refuses any other revision. Read [`android/README.md`](android/README.md) for the build properties and the known limitations before embedding it.
+It produces an AAR containing `libscummvm.so` (built from the same submodule via upstream's own `configure`/`make`), the JNI-facing upstream Java classes, ScummVM's runtime data as assets, and a Compose `ScummVM` composable. It needs JDK 17+, the Android SDK, and **NDK r28 or newer** for 16 KB page-size support (NDK r29 is the default). Read [`android/README.md`](android/README.md) for the build properties, `.scummvm` archive import, and known limitations before embedding it.
 
 ## Requirements
 - Apple platforms: iOS 17+, tvOS 17+, macOS 15+.

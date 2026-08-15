@@ -1,5 +1,6 @@
 package de.doop.scummvm
 
+import android.net.Uri
 import androidx.compose.runtime.Immutable
 import java.io.File
 
@@ -27,6 +28,17 @@ data class ScummVMConfiguration(
 
     /** Extra command line arguments appended after the ones derived above. */
     val extraArguments: List<String> = emptyList(),
+
+    /**
+     * A `.zip` or `.scummvm` document selected through Android's document
+     * picker. It is extracted into the app's private ScummVM directory before
+     * the engine starts, then launched through auto-detection.
+     *
+     * When set, this takes precedence over [target]. The caller only needs
+     * read access for the duration of engine preparation; persist the URI
+     * permission when the selection must survive a later process restart.
+     */
+    val gameUri: Uri? = null,
 )
 
 /** Lifecycle of the embedded engine. */
@@ -34,7 +46,7 @@ sealed interface ScummVMState {
     /** Nothing has been started yet. */
     data object Idle : ScummVMState
 
-    /** Runtime data (themes, engine data) is being unpacked from the AAR assets. */
+    /** Runtime data and an optional game archive are being unpacked. */
     data object PreparingData : ScummVMState
 
     /** Waiting for the surface, or already rendering. */

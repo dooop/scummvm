@@ -110,20 +110,12 @@ dependencies {
 // SDK / NDK discovery
 // ---------------------------------------------------------------------------
 
-/**
- * The NDK revision upstream's `configure` insists on: it greps `ndkVersion` out
- * of `dists/android/build.gradle` and aborts on a mismatch. Read it from that
- * same file so a submodule bump can never silently desync.
- */
-fun requiredNdkVersion(): String {
-    val gradleFile = File(upstreamDir, "dists/android/build.gradle")
-    require(gradleFile.isFile) {
-        "Missing ${gradleFile.path}. Run: git submodule update --init --recursive"
-    }
-    val line = gradleFile.readLines().firstOrNull { it.trimStart().startsWith("ndkVersion") }
-        ?: error("No ndkVersion declaration found in ${gradleFile.path}")
-    return line.replace(Regex("[^0-9.]"), "")
-}
+// NDK r28+ builds 16 KB-aligned libraries (including libc++_shared.so) by
+// default. Upstream still pins r23 for its standalone app, so this wrapper uses
+// a generated configure copy that keeps every upstream check except the exact
+// NDK revision comparison.
+val ndkVersion: Provider<String> = providers.gradleProperty("scummvm.ndkVersion")
+    .orElse("29.0.14206865")
 
 fun localProperty(name: String): String? {
     val file = rootProject.file("local.properties")
@@ -146,7 +138,11 @@ fun resolveSdkDir(): File {
 }
 
 fun resolveNdkDir(): File {
-    val version = requiredNdkVersion()
+    val version = ndkVersion.get()
+    val major = version.substringBefore('.').toIntOrNull()
+    require(major != null && major >= 28) {
+        "scummvm.ndkVersion must be r28 or newer for 16 KB page-size support (was $version)."
+    }
     val candidate = localProperty("ndk.dir")
         ?: System.getenv("ANDROID_NDK_ROOT")
         ?: System.getenv("ANDROID_NDK_HOME")
@@ -164,8 +160,8 @@ fun resolveNdkDir(): File {
         ?.substringAfter('=')
         ?.trim()
     require(revision == null || revision == version) {
-        "Upstream configure requires NDK $version but $dir is $revision.\n" +
-            "ScummVM's configure aborts on a version mismatch; install that exact revision."
+        "The configured ScummVM NDK is $version but $dir is $revision.\n" +
+            "Install that exact revision or update scummvm.ndkVersion."
     }
     return dir
 }
@@ -340,11 +336,14 @@ abstract class ScummVMConfigure : DefaultTask() {
             environment("ANDROID_NDK_ROOT", ndkDir.get())
             // Picked up by configure (folded into CXXFLAGS/LDFLAGS and baked
             // into the generated config.mk) so android-mixer.cpp finds Oboe.
-            // max-page-size=16384 keeps libscummvm.so's own LOAD segments
-            // 16 KB-aligned for Android 15+ devices, independent of whether
-            // the pinned NDK/toolchain defaults to that alignment.
+            // Keep both flags explicit even though NDK r28+ applies them by
+            // default. This also protects the build if upstream changes flags.
             environment("CPPFLAGS", "-I${oboeIncludeDir.get()}")
-            environment("LDFLAGS", "-L${oboeLibDir.get()} -Wl,-z,max-page-size=16384")
+            environment(
+                "LDFLAGS",
+                "-L${oboeLibDir.get()} -Wl,-z,max-page-size=16384 " +
+                    "-Wl,-z,common-page-size=16384",
+            )
         }
     }
 }
@@ -389,6 +388,42 @@ val makeJobs: Int = providers.gradleProperty("scummvm.buildJobs").orNull
 val sdkDirProvider: Provider<String> = providers.provider { resolveSdkDir().absolutePath }
 val ndkDirProvider: Provider<String> = providers.provider { resolveNdkDir().absolutePath }
 
+val generatedConfigure = layout.buildDirectory.file("generated/scummvm-configure/configure")
+val prepareScummVMConfigure = tasks.register("prepareScummVMConfigure") {
+    group = "scummvm"
+    description = "Generates a configure script that permits the wrapper's modern Android NDK."
+    val upstreamConfigure = File(upstreamDir, "configure")
+    inputs.file(upstreamConfigure)
+    inputs.property("ndkVersion", ndkVersion)
+    outputs.file(generatedConfigure)
+
+    doLast {
+        val sourceDir = upstreamDir.absolutePath.replace("'", "'\\''")
+        var script = upstreamConfigure.readText()
+        val sourceAssignment = "_srcdir=`dirname \$0`"
+        require(script.contains(sourceAssignment)) { "Could not locate _srcdir in upstream configure" }
+        script = script.replace(sourceAssignment, "_srcdir='$sourceDir'", ignoreCase = false)
+
+        val checkStart = "\t# Check that we have the correct NDK version"
+        val checkEnd = "\n\t# Try to use a known to work toolchain"
+        val start = script.indexOf(checkStart)
+        val end = script.indexOf(checkEnd, startIndex = start)
+        require(start >= 0 && end > start) {
+            "Could not locate the upstream Android NDK version check in configure"
+        }
+        val replacement =
+            "\t# The Compose wrapper deliberately supports a newer NDK than the standalone\n" +
+                "\t# upstream Android project so all ELF files support 16 KB pages.\n" +
+                "\techo \"Using wrapper-selected Android NDK: ${ndkVersion.get()}\""
+        script = script.replaceRange(start, end, replacement)
+
+        val output = generatedConfigure.get().asFile
+        output.parentFile.mkdirs()
+        output.writeText(script)
+        output.setExecutable(true)
+    }
+}
+
 val nativeLibraryTasks: Map<String, TaskProvider<ScummVMMake>> =
     if (prebuiltLibsDir != null) {
         emptyMap()
@@ -397,7 +432,7 @@ val nativeLibraryTasks: Map<String, TaskProvider<ScummVMMake>> =
             val suffix = abi.split(Regex("[-_]")).joinToString("") { part ->
                 part.replaceFirstChar(Char::uppercaseChar)
             }
-            val nativeBuild = layout.buildDirectory.dir("native/$abi")
+            val nativeBuild = layout.buildDirectory.dir("native/${ndkVersion.get()}/$abi")
 
             val configureTask = tasks.register<ScummVMConfigure>("configureScummVM$suffix") {
                 group = "scummvm"
@@ -408,10 +443,10 @@ val nativeLibraryTasks: Map<String, TaskProvider<ScummVMMake>> =
                 ndkDir.set(ndkDirProvider)
                 oboeIncludeDir.set(oboeIncludeDir())
                 oboeLibDir.set(oboeLibDir(abi))
-                configurePath.set(File(upstreamDir, "configure").absolutePath)
+                configurePath.set(generatedConfigure.map { it.asFile.absolutePath })
                 nativeBuildDir.set(nativeBuild)
                 configMk.set(nativeBuild.map { it.file("config.mk") })
-                dependsOn(extractOboe)
+                dependsOn(extractOboe, prepareScummVMConfigure)
             }
 
             tasks.register<ScummVMMake>("buildScummVM$suffix") {

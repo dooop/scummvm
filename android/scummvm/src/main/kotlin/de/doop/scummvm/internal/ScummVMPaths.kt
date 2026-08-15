@@ -22,8 +22,8 @@ internal class ScummVMPaths(context: Context) {
 
     val logFile: File = File(baseDir, "scummvm.log")
 
-    /** Sandboxed game archives imported through Android's document provider. */
-    val importedArchivesDir: File = File(baseDir, "ScummVM/ImportedArchives")
+    /** Sandboxed games imported through Android's document provider. */
+    val importedGamesDir: File = File(baseDir, "ScummVM/Games")
 
     /**
      * Creates `scummvm.ini` if it does not exist yet.

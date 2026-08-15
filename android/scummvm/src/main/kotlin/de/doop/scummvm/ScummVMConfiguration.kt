@@ -32,7 +32,8 @@ data class ScummVMConfiguration(
     /**
      * A `.zip` or `.scummvm` document selected through Android's document
      * picker. It is extracted into the app's private ScummVM directory before
-     * the engine starts, then launched through auto-detection.
+     * the engine starts. Detected games are added to the library before the
+     * launcher opens.
      *
      * When set, this takes precedence over [target]. The caller only needs
      * read access for the duration of engine preparation; persist the URI
@@ -46,13 +47,13 @@ sealed interface ScummVMState {
     /** Nothing has been started yet. */
     data object Idle : ScummVMState
 
-    /** Runtime data and an optional game archive are being unpacked. */
+    /** Runtime data or an imported game archive is being unpacked. */
     data object PreparingData : ScummVMState
 
     /** Waiting for the surface, or already rendering. */
     data object Running : ScummVMState
 
-    /** The engine's `main()` returned. The process cannot host another run. */
+    /** The engine's `main()` returned without a pending managed import. */
     data class Stopped(val exitCode: Int) : ScummVMState
 
     /** Start-up failed before or during the engine run. */

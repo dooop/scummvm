@@ -8,7 +8,7 @@ import java.io.File
 import java.io.IOException
 import java.util.zip.ZipInputStream
 
-/** Imports `.zip` and `.scummvm` documents before the native engine starts. */
+/** Imports `.zip` and `.scummvm` documents into the app's private games folder. */
 internal class ScummVMGamePathResolver(
     private val contentResolver: ContentResolver,
     private val paths: ScummVMPaths,
@@ -23,9 +23,9 @@ internal class ScummVMGamePathResolver(
             "Unsupported game document '$displayName'. Select a .zip or .scummvm archive."
         }
 
-        paths.importedArchivesDir.mkdirs()
-        check(paths.importedArchivesDir.isDirectory) {
-            "Could not create ${paths.importedArchivesDir.path}"
+        paths.importedGamesDir.mkdirs()
+        check(paths.importedGamesDir.isDirectory) {
+            "Could not create ${paths.importedGamesDir.path}"
         }
 
         val stem = displayName.substringBeforeLast('.', displayName)
@@ -33,7 +33,7 @@ internal class ScummVMGamePathResolver(
             .trim('-', '.')
             .ifEmpty { "game" }
         val destination = File(
-            paths.importedArchivesDir,
+            paths.importedGamesDir,
             "$stem-${fnv1a64(uri.toString()).toString(16)}",
         )
 

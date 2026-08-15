@@ -1,6 +1,7 @@
 package de.doop.scummvm.internal
 
 import android.content.Context
+import android.content.pm.PackageManager
 import android.view.GestureDetector
 import android.view.InputDevice
 import android.view.KeyCharacterMap
@@ -34,6 +35,7 @@ internal class ScummVMInput(
     private companion object {
         const val JE_SYS_KEY = 0
         const val JE_KEY = 1
+        const val JE_DPAD = 2
         const val JE_DOWN = 3
         const val JE_SCROLL = 4
         const val JE_TAP = 5
@@ -64,6 +66,7 @@ internal class ScummVMInput(
     private val gestureDetector = GestureDetector(context, this).also {
         it.setOnDoubleTapListener(this)
     }
+    private val isTelevision = context.packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK)
 
     /** Set while a two-or-three finger gesture owns the stream of events. */
     private var multitouchActive = false
@@ -272,11 +275,19 @@ internal class ScummVMInput(
             KeyEvent.KEYCODE_DPAD_RIGHT,
             KeyEvent.KEYCODE_DPAD_CENTER,
             ->
-                // Soft-keyboard arrows are text navigation; a real D-pad is a
-                // game controller and goes through ScummVM's keymapper.
                 if (event.flags and KeyEvent.FLAG_SOFT_KEYBOARD == KeyEvent.FLAG_SOFT_KEYBOARD) {
                     JE_KEY
+                } else if (
+                    isTelevision &&
+                    !event.isFromSource(InputDevice.SOURCE_GAMEPAD) &&
+                    !event.isFromSource(InputDevice.SOURCE_JOYSTICK)
+                ) {
+                    // A basic TV remote has no analog pointer. The native
+                    // Android backend's D-pad path moves the mouse cursor and
+                    // translates center/select into a left click.
+                    JE_DPAD
                 } else {
+                    // Physical gamepads go through ScummVM's keymapper.
                     JE_GAMEPAD
                 }
 

@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.BasicText
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -19,6 +21,9 @@ import androidx.compose.ui.unit.dp
 import de.doop.scummvm.app.BuildConfig
 
 class MainActivity : ComponentActivity() {
+    private var activeEngine: ScummVMEngine? = null
+    private var pendingGameUri: Uri? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -28,6 +33,19 @@ class MainActivity : ComponentActivity() {
         setContent {
             val engine = rememberScummVMEngine(ScummVMConfiguration(gameUri = gameUri))
             val state by engine.stateAsState()
+
+            SideEffect {
+                activeEngine = engine
+                pendingGameUri?.let {
+                    pendingGameUri = null
+                    engine.importGame(it)
+                }
+            }
+            DisposableEffect(engine) {
+                onDispose {
+                    if (activeEngine === engine) activeEngine = null
+                }
+            }
 
             Box(
                 modifier = Modifier
@@ -55,6 +73,18 @@ class MainActivity : ComponentActivity() {
                     -> Unit
                 }
             }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        val uri = intent.gameDocumentUri() ?: return
+        val engine = activeEngine
+        if (engine == null) {
+            pendingGameUri = uri
+        } else {
+            engine.importGame(uri)
         }
     }
 }

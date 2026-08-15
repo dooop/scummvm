@@ -58,7 +58,7 @@ Public API surface, intentionally small and mirroring the Swift package's
 |---|---|
 | `ScummVM` | Composable. Starts the engine on appear, stops it on dispose. |
 | `ScummVMView` | Composable. Just hosts the surface and forwards input; you drive the lifecycle. |
-| `ScummVMEngine` | The engine facade: `state`, `currentGame`, `setPaused`, `setTouchMode`, `stop`. |
+| `ScummVMEngine` | The engine facade: `state`, `currentGame`, `importGame`, `setPaused`, `setTouchMode`, `stop`. |
 | `ScummVMConfiguration` | Start-up options (target, game archive URI, games directory, extra arguments). |
 | `ScummVMState` | `Idle` / `PreparingData` / `Running` / `Stopped` / `Failed`. |
 | `ScummVMTouchMode` | `Touchpad` / `DirectMouse` / `Gamepad`. |
@@ -141,15 +141,35 @@ Release builds fail early with a focused message when the AAR is missing. A
 flat AAR has no dependency metadata, so the app declares the wrapper's AndroidX,
 Compose, and coroutine runtime dependencies itself.
 
+### Android TV sample support
+
+The sample app is available to both handheld and Android TV devices. Its host
+manifest declares Leanback support, makes touchscreen/fake-touch optional, adds
+the `LEANBACK_LAUNCHER` category, and supplies the required TV banner and app
+icon. The same `ScummVMView` is used on both device classes: it requests focus
+when attached and forwards D-pad, remote-select, gamepad buttons, sticks, hats,
+and triggers to the native Android backend.
+
+The sample intentionally relies on the platform's default demo launcher
+artwork and does not ship custom icon or banner assets.
+
+The sample does not require a touchscreen, but pointer remotes remain enabled.
+Games that need more buttons than a basic D-pad remote provides should be used
+with an Android-compatible game controller. Game import still uses Android's
+Storage Access Framework; availability and TV usability of a document provider
+depends on the device firmware.
+
 ### Importing `.scummvm` game archives
 
 Pass a document URI returned by `ActivityResultContracts.OpenDocument()` as
 `ScummVMConfiguration(gameUri = uri)`. Both `.scummvm` and `.zip` are treated as
 ZIP containers, extracted off the UI thread into
-`<filesDir>/ScummVM/ImportedArchives`, and launched with ScummVM auto-detection.
-The extractor rejects path traversal and ignores the macOS `__MACOSX` folder.
-The sample app also accepts these files through Android's **Open with** and
-**Share** actions.
+`<filesDir>/ScummVM/Games`, and added recursively to ScummVM's library before
+the launcher opens. The extractor rejects path traversal and ignores the macOS
+`__MACOSX` folder. The sample app also accepts these files through Android's
+**Open with** and **Share** actions. It uses a single Activity instance, so an
+archive opened while ScummVM is already running is imported by the existing
+engine instead of constructing a second native singleton.
 
 ```kotlin
 val picker = rememberLauncherForActivityResult(
@@ -158,6 +178,9 @@ val picker = rememberLauncherForActivityResult(
 
 picker.launch(arrayOf("application/zip", "application/octet-stream"))
 ```
+
+For a picker shown while the engine is already running, keep the remembered
+engine and pass the result to `engine.importGame(uri)`.
 
 ### How the native build works
 
@@ -233,12 +256,10 @@ requires.
 
 ## Known limitations
 
-* **One engine run per process.** The native engine is a process-wide singleton
-  with no re-initialisable teardown path; upstream's own launcher kills its
-  process rather than restart it. `ScummVMEngine` enforces the same rule — once
-  `state` is `Stopped`, a new engine reports `Failed` and the app has to be
-  relaunched. Keep the `ScummVM` composable in the composition if the user
-  should be able to come back to it.
+* **One engine host per process.** The native engine is a process-wide
+  singleton. `ScummVMEngine` can perform a controlled rerun for archive import,
+  but a second engine object still reports `Failed`. Keep the `ScummVM`
+  composable in the composition while the user moves between app screens.
 * **No on-screen control overlay.** When the engine asks for its menu / input
   mode buttons, the library only logs it; draw your own controls on top of
   `ScummVMView`.

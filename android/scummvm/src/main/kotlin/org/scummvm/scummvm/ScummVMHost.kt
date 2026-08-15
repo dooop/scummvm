@@ -31,8 +31,12 @@ internal class ScummVMHost(
     private val paths: ScummVMPaths,
     private val delegate: ScummVMHostDelegate,
     holder: SurfaceHolder,
-    onDestroyed: (Int) -> Unit,
-) : ScummVM(context.assets, holder, MyScummVMDestroyedCallback { onDestroyed(it) }) {
+    onDestroyed: (Thread, Int) -> Unit,
+) : ScummVM(
+    context.assets,
+    holder,
+    MyScummVMDestroyedCallback { onDestroyed(Thread.currentThread(), it) },
+) {
 
     private val mainHandler = Handler(Looper.getMainLooper())
 

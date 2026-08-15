@@ -17,7 +17,7 @@ let localEngineArtifactsPath = ProcessInfo.processInfo.environment["SCUMMVM_ENGI
 // Consumers link the prebuilt engine: ~7,700 upstream translation units and the
 // 534 MB submodule checkout drop out of their build entirely.
 //
-// Set SCUMMVM_BUILD_FROM_SOURCE=1 to compile the engine from Sources/ScummVMEngine
+// Set SCUMMVM_BUILD_FROM_SOURCE=1 to compile the engine from scummvm
 // instead - required when touching engine code, overrides or the platform glue, and
 // used by the release pipeline itself. SwiftPM caches the parsed manifest by content,
 // not by environment, so run `swift package reset` when flipping the switch.

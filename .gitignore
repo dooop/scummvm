@@ -91,4 +91,18 @@ iOSInjectionProject/
 
 # Visual Studio Code
 .vscode/
+
+# Android / Gradle
+.gradle/
+local.properties
 .codex-home/
+.gradle/
+build/
+local.properties
+.idea/
+*.iml
+captures/
+.cxx/
+app/libs/*.aar
+!app/libs/README.md
+

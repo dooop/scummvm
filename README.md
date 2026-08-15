@@ -1,14 +1,14 @@
 # swift-scummvm
 
-SwiftUI wrapper around the upstream ScummVM codebase, packaged as a Swift Package with minimal ObjC++ glue. The core goal is to reuse as much upstream C/C++ as possible while keeping platform-specific wrapper code small and focused.
+SwiftUI wrapper around the upstream ScummVM codebase, packaged as a Swift Package with minimal ObjC++ glue, plus a Jetpack Compose wrapper packaged as an Android AAR (see [`android/`](android/README.md)). The core goal is to reuse as much upstream C/C++ as possible while keeping platform-specific wrapper code small and focused.
 
 Upstream ScummVM repository: [scummvm/scummvm](https://github.com/scummvm/scummvm).
 
 ## Goals
-- Reuse upstream ScummVM code directly via the `Sources/ScummVMEngine/` git submodule.
+- Reuse upstream ScummVM code directly via the `scummvm/` git submodule.
 - Keep Swift and ObjC++ wrappers thin and localized to `Sources/`.
 - Avoid long-lived forks or large downstream patches in the submodule.
-- Ship as a Swift Package that can be embedded in iOS, tvOS, and macOS apps.
+- Ship as a Swift Package that can be embedded in iOS, tvOS, and macOS apps, and as an AAR that can be embedded in Android apps.
 
 ## Build modes
 
@@ -16,7 +16,7 @@ The package builds in one of two modes, selected by the `SCUMMVM_BUILD_FROM_SOUR
 
 **Binary mode (default).** The engine and platform glue are consumed as prebuilt dynamic-framework XCFrameworks from a GitHub Release. Consumers compile four Swift files instead of ~7,700 C/C++ translation units and do not need the ~534 MB upstream submodule at all. The frameworks link the third-party static libraries and system frameworks into themselves and carry the runtime payload in their own `Resources` directory, so a binary-mode graph resolves one artifact per platform instead of twenty-six. iOS and tvOS publish as separate XCFrameworks (`ScummVMiOS`, `ScummVMtvOS`) rather than one bundling both, so a single-platform consumer only downloads that platform's slices.
 
-**Source mode (`SCUMMVM_BUILD_FROM_SOURCE=1`).** The engine is compiled from `Sources/ScummVMEngine/`. Required when changing engine code, overrides, platform glue or the engine build flags — and used by the release pipeline itself.
+**Source mode (`SCUMMVM_BUILD_FROM_SOURCE=1`).** The engine is compiled from `scummvm/`. Required when changing engine code, overrides, platform glue or the engine build flags — and used by the release pipeline itself.
 
 ```sh
 SCUMMVM_BUILD_FROM_SOURCE=1 swift build
@@ -26,7 +26,7 @@ SwiftPM caches the parsed manifest by content, not by environment, so run `swift
 
 ## Architecture
 - [`ScummVM`](Sources/ScummVM/) (SwiftUI target) exposes the public Swift UI.
-- [`ScummVMEngine`](Sources/ScummVMEngine/) (C/C++ target, source mode only) wraps the upstream submodule and build flags.
+- [`ScummVMEngine`](scummvm/) (C/C++ target, source mode only) wraps the upstream submodule and build flags. SwiftPM reaches the root checkout through the tracked `Sources/ScummVMEngine` compatibility symlink so Xcode can keep its native targets scoped under `Sources/`.
 - [`ScummVMiOS`](Sources/ScummVMiOS/) and [`ScummVMmacOS`](Sources/ScummVMmacOS/) provide platform glue. In source mode these are ObjC++ targets; in binary mode the same names resolve to the prebuilt XCFrameworks, so every dependent target's dependency list is identical either way.
 - [`ScummVMtvOS`](Sources/ScummVMtvOS/) — in source mode, a thin Swift target that re-exports `ScummVMiOS` via `@_exported import`. In binary mode it's its own prebuilt XCFramework, built from the same `ScummVMiOS` source but published separately so a tvOS-only (or iOS-only) consumer isn't forced to download the other platform's slices.
 - The runtime payload (engine-data, themes, soundfonts, asset catalogs, privacy manifests) always comes from the submodule: in source mode through SwiftPM resource rules, in binary mode because the release pipeline copies it into the framework bundle. Nothing is checked into this repo.
@@ -38,7 +38,7 @@ SwiftPM caches the parsed manifest by content, not by environment, so run `swift
 Source and executable targets:
 - [`ScummVM`](Sources/ScummVM/)
 - [`ScummVMApp`](Sources/ScummVMApp/)
-- [`ScummVMEngine`](Sources/ScummVMEngine/) (source mode only; overrides in [`Sources/ScummVMEngineOverrides/`](Sources/ScummVMEngineOverrides/))
+- [`ScummVMEngine`](scummvm/) (source mode only; overrides in [`Sources/ScummVMEngineOverrides/`](Sources/ScummVMEngineOverrides/))
 - [`ScummVMiOS`](Sources/ScummVMiOS/) (source mode only)
 - [`ScummVMmacOS`](Sources/ScummVMmacOS/) (source mode only)
 - [`ScummVMtvOS`](Sources/ScummVMtvOS/)
@@ -58,11 +58,22 @@ Key entry points:
 - `ScummVMView` bridges the engine UI into SwiftUI (iOS/tvOS uses a `UIViewController`, macOS provides an empty host view while SDL owns its window).
 - `ScummVMEngine` ObjC API is the minimal bridge used by Swift.
 
+## Android
+
+The Android modules live in [`android/`](android/README.md), with the Gradle project rooted here so the repository opens directly in Android Studio:
+
+```sh
+./gradlew :scummvm:assembleRelease
+```
+
+It produces an AAR containing `libscummvm.so` (built from the same submodule via upstream's own `configure`/`make`), the JNI-facing upstream Java classes, ScummVM's runtime data as assets, and a Compose `ScummVM` composable. It needs JDK 17+, the Android SDK, and **NDK r28 or newer** for 16 KB page-size support (NDK r29 is the default). Read [`android/README.md`](android/README.md) for the build properties, `.scummvm` archive import, and known limitations before embedding it.
+
 ## Requirements
-- Platforms: iOS 17+, tvOS 17+, macOS 15+.
+- Apple platforms: iOS 17+, tvOS 17+, macOS 15+.
+- Android: minSdk 21, compileSdk 36.
 - Swift tools version: 6.0 (see `Package.swift`).
 - Apple Silicon host and target. Intel macOS and `x86_64` simulators are unsupported.
-- The `ScummVMEngine/` submodule is required only in source mode.
+- The `scummvm/` submodule is required only in source mode.
 - Internet access is required on first package resolve/build so SwiftPM can download the XCFramework zips from the pinned GitHub Releases (they are cached locally after download).
 - [ZIPFoundation](https://github.com/weichsel/ZIPFoundation) 0.9.20+ (declared as a Swift Package dependency in `Package.swift`).
 
@@ -160,12 +171,12 @@ If you need manual control, you can use `ScummVMView` and call `ScummVMEngineSha
 - The payload layout is load-bearing: the backend locates it by recursively scanning a bundle for `engine_data_core.mk` and `scummmodern.zip`, preferring the theme zip next to the engine-data directory. Keep `engine-data/` as the only subdirectory and everything else flat beside it, in both the `Package.swift` resource rules and `Scripts/build-engine-slice.sh`.
 - On iOS/tvOS `mainBundle.resourcePath` is the `.app` root, so the recursive scan reaches the embedded framework on its own. On macOS it is `Contents/Resources` and the framework sits outside it, which is why `Sources/ScummVMmacOS/ScummVMAppContext.mm` searches the framework bundle explicitly.
 - Changing engine code without publishing a new engine release is a silent no-op for consumers — they keep linking the last released binary. Run the release workflow.
-- `ScummVMEngine` sources are taken from the upstream submodule (`ScummVMEngine/`).
+- `ScummVMEngine` sources are taken from the upstream submodule (`scummvm/`).
 - Override-only files live in `Sources/ScummVMEngineOverrides/` (plus platform glue in `Sources/ScummVMiOS/` and `Sources/ScummVMmacOS/`).
 - If a submodule source file causes an SPM-only issue, exclude it in `Package.swift` and add a replacement translation unit under `Sources/ScummVMEngineOverrides/`.
 
 ## Quick start (read before making changes)
-- Never modify anything under `Sources/ScummVMEngine/`. It is a git submodule of upstream ScummVM and must remain untouched.
+- Never modify anything under `scummvm/`. It is a git submodule of upstream ScummVM and must remain untouched.
 - Allowed edit surface: `Sources/ScummVM/`, `Sources/ScummVMiOS/`, `Sources/ScummVMmacOS/`, `Sources/ScummVMtvOS/`, `Sources/ScummVMEngineOverrides/`, `Scripts/`, `Package.swift`, `README.md`.
 - If a build issue needs source changes, add a replacement file in `Sources/ScummVMEngineOverrides/` and exclude the upstream file in `Package.swift`.
 - Keep public API small and stable: `ScummVM`, `ScummVMView`, `ScummVMEngine`.
@@ -183,4 +194,4 @@ This wrapper is under active development. Current state:
 - `ScummVMApp` is macOS-only; a tvOS/iOS equivalent app target may be useful for standalone testing.
 
 ## License
-This wrapper follows the upstream ScummVM licensing. See the license files inside the `Sources/ScummVMEngine/` submodule for details.
+This wrapper follows the upstream ScummVM licensing. See the license files inside the `scummvm/` submodule for details.

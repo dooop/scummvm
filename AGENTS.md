@@ -7,9 +7,10 @@
 
 ## Structure map
 - `Package.swift` defines Swift Package targets, exclusions, and build flags.
-- `Sources/ScummVMEngine/` is the upstream ScummVM git submodule (do not edit).
+- `scummvm/` is the upstream ScummVM git submodule (do not edit).
+- `Sources/ScummVMEngine` is a tracked SwiftPM compatibility symlink to `../scummvm` (do not edit through it).
 - `Sources/ScummVM/` contains SwiftUI wrappers (`ScummVM`, `ScummVMView`, `ScummVMViewModel`, `ScummVMGamePathResolver`).
-- `Sources/ScummVMEngine/` contains the engine target glue and overrides.
+- `scummvm/` contains the shared upstream engine sources.
 - `Sources/ScummVMEngineOverrides/` contains replacement translation units for build fixes.
 - `Sources/ScummVMiOS/` and `Sources/ScummVMmacOS/` contain ObjC++ platform glue.
 - `Sources/ScummVMiOS/include/ScummVMEngine.h` and `Sources/ScummVMmacOS/include/ScummVMEngine.h` are the public ObjC APIs.
@@ -30,14 +31,15 @@
 - `plugins-table-maintainer`: Maintain plugin/detection override tables safely. (`.agents/skills/plugins-table-maintainer/SKILL.md`)
 - `xcframework-linkage-check`: Diagnose linker failures and XCFramework slice/dependency mismatches. (`.agents/skills/xcframework-linkage-check/SKILL.md`)
 - `scummvm-engine-architecture`: Map wrapper-to-engine architecture and change impact before patching. (`.agents/skills/scummvm-engine-architecture/SKILL.md`)
-- `scummvm-submodule-sync`: Update Sources/ScummVMEngine, then reconcile override and exclusion drift safely. (`.agents/skills/scummvm-submodule-sync/SKILL.md`)
+- `scummvm-submodule-sync`: Update scummvm, then reconcile override and exclusion drift safely. (`.agents/skills/scummvm-submodule-sync/SKILL.md`)
 - `package-swift-auditor`: Audit Package.swift target membership, exclusions, binary targets, and platform conditions. (`.agents/skills/package-swift-auditor/SKILL.md`)
 
 ### Skill trigger rule
 - If the user explicitly names one of the skills or the task clearly matches a skill description, open and apply that skill for the turn.
 
 ## Non-negotiable rules (read first)
-- Never modify anything under `Sources/ScummVMEngine/`. It is a git submodule of upstream ScummVM.
+- Never modify anything under `scummvm/`. It is a git submodule of upstream ScummVM.
+- Treat `Sources/ScummVMEngine` as the same read-only upstream tree; it is only a symlink used to keep SwiftPM targets scoped under `Sources/`.
 - Never delete, reformat, or "fix" upstream sources. Keep upstream code intact.
 - All changes must be in wrapper/glue code or in `Package.swift`.
 - If a build issue requires source changes, add a replacement file in `Sources/ScummVMEngineOverrides/` and exclude the upstream file in `Package.swift`.
@@ -47,7 +49,8 @@
 - ObjC++ glue: `Sources/ScummVMiOS/`, `Sources/ScummVMmacOS/`, `Sources/ScummVMtvOS/`
 - Override translation units: `Sources/ScummVMEngineOverrides/`
 - Build configuration: `Package.swift`
-- Documentation: `README.md`
+- Android Compose wrapper: `android/`; root Gradle configuration: `build.gradle.kts`, `settings.gradle.kts`, `gradle.properties`, `gradle/`, `gradlew`
+- Documentation: `README.md`, `android/README.md`
 - Repository skills: `.agents/skills/`
 
 ## When build issues occur

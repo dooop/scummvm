@@ -1,6 +1,6 @@
 ---
 name: plugins-table-maintainer
-description: Safely maintain ScummVM plugin and detection table overrides for this wrapper. Use when updating Sources/ScummVMEngineOverrides/engines/plugins_table.h or detection_table.h, especially after upstream syncs or engine enable/disable changes.
+description: Safely maintain ScummVM plugin and detection table overrides for this wrapper. Use when updating swift/Sources/ScummVMEngineOverrides/engines/plugins_table.h or detection_table.h, especially after upstream syncs or engine enable/disable changes.
 ---
 
 # Plugins Table Maintainer

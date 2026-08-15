@@ -1,0 +1,4 @@
+interface:
+  display_name: "Android Build Triage"
+  short_description: "Diagnose Gradle, Kotlin, NDK, and native build failures"
+  default_prompt: "Use $android-build-triage to diagnose and fix an Android build failure without modifying the upstream submodule."

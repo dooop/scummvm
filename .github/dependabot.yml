@@ -12,6 +12,12 @@ updates:
     schedule:
       interval: "weekly"
 
+  # Keep the root Android Gradle project and both modules up to date.
+  - package-ecosystem: "gradle"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+
   # Keep the upstream ScummVM submodule up to date. Source-mode CI catches
   # breaking changes; follow the scummvm-submodule-sync skill before merging.
   - package-ecosystem: "gitsubmodule"

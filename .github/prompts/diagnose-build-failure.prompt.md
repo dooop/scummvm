@@ -26,8 +26,8 @@ Collect the full error text, including:
 ## Step 3: Apply the fix in order of preference
 
 1. `Package.swift` only (flag, exclusion, path) — no source change.
-2. Glue code change (`Sources/ScummVMiOS/`, `Sources/ScummVMmacOS/`,
-   `Sources/ScummVMtvOS/`, or `Sources/ScummVM/`).
+2. Glue code change (`swift/Sources/ScummVMiOS/`, `swift/Sources/ScummVMmacOS/`,
+   `swift/Sources/ScummVMtvOS/`, or `swift/Sources/ScummVM/`).
 3. Engine override — use the `create-engine-override` skill.
 
 Never skip to step 3 without first confirming steps 1 and 2 cannot resolve the

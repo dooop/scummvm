@@ -1,0 +1,4 @@
+interface:
+  display_name: "Android Compose Development"
+  short_description: "Develop the Android Compose wrapper and JNI lifecycle safely"
+  default_prompt: "Use $android-compose-development to implement an Android wrapper change while preserving JNI, lifecycle, and upstream boundaries."

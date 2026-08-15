@@ -2,11 +2,11 @@
 import Foundation
 import PackageDescription
 
-let binaryBaseURL = "https://github.com/dooop/swift-scummvm/releases/download/0.2.0"
+let binaryBaseURL = "https://github.com/dooop/scummvm/releases/download/0.2.0"
 
 // Prebuilt ScummVM engine + platform glue. Published by .github/workflows/release-engine.yml;
 // bump the tag and all three checksums together when a new engine build ships.
-let engineBinaryBaseURL = "https://github.com/dooop/swift-scummvm/releases/download/0.5.2"
+let engineBinaryBaseURL = "https://github.com/dooop/scummvm/releases/download/0.5.2"
 let engineChecksumiOS = "f3b914b6283bc038f9107afe9b5a2ce27f547b3aaf501783d499bc3b6c2426f2"
 let engineChecksumtvOS = "31ba404b22c6b4e1a50cb4e871454fea57d8fcd7142ba4bb1bad290804cd4e68"
 let engineChecksummacOS = "a0ce4bc9aa1e74dc8003bead80b45aeb82b475d79f624b90b836bb725fcc68d9"
@@ -52,7 +52,7 @@ let engineTargets: [Target] =
           "theoradec", "vorbis", "vorbisfile", "vpx",
           .target(name: "SDL2", condition: .when(platforms: [.macOS])),
         ],
-        path: "Sources",
+        path: "swift/Sources",
         exclude: [
           // Other targets (this target should only build engine + overrides).
           "ScummVM",
@@ -331,7 +331,7 @@ let engineTargets: [Target] =
         resources: [
           // Core runtime payload expected by ScummVM. In binary mode the release
           // pipeline copies the same files into the framework's own Resources
-          // directory - see Scripts/build-engine-slice.sh, keep the two in sync.
+          // directory - see swift/Scripts/build-engine-slice.sh, keep the two in sync.
           .copy("ScummVMEngine/dists/engine-data"),
           .copy("ScummVMEngine/dists/networking/wwwroot.zip"),
           .copy("ScummVMEngine/dists/soundfonts/Roland_SC-55.sf2"),
@@ -578,7 +578,7 @@ let engineTargets: [Target] =
         dependencies: [
           "ScummVMEngine"
         ],
-        path: "Sources",
+        path: "swift/Sources",
         exclude: [
           // Prevent implicit resource discovery from upstream distribution payload.
           "ScummVMEngine/dists"
@@ -797,7 +797,7 @@ let engineTargets: [Target] =
         dependencies: [
           "ScummVMEngine"
         ],
-        path: "Sources",
+        path: "swift/Sources",
         exclude: [
           // Prevent implicit resource discovery from upstream distribution payload.
           "ScummVMEngine/dists"
@@ -1024,6 +1024,7 @@ let engineTargets: [Target] =
         dependencies: [
           "ScummVMiOS"
         ],
+        path: "swift/Sources/ScummVMtvOS",
         resources: tvOSResources
       ),
 
@@ -1140,7 +1141,7 @@ let engineTargets: [Target] =
   ]
 
 let package = Package(
-  name: "swift-scummvm",
+  name: "scummvm",
   platforms: [
     .iOS(.v17), .tvOS(.v17), .macOS(.v15),
   ],
@@ -1177,13 +1178,15 @@ let package = Package(
         .target(name: "ScummVMmacOS", condition: .when(platforms: [.macOS])),
         .target(name: "ScummVMiOS", condition: .when(platforms: [.iOS])),
         .target(name: "ScummVMtvOS", condition: .when(platforms: [.tvOS])),
-      ]
+      ],
+      path: "swift/Sources/ScummVM"
     ),
     .executableTarget(
       name: "ScummVMApp",
       dependencies: [
         .target(name: "ScummVM", condition: .when(platforms: [.macOS]))
-      ]
+      ],
+      path: "swift/Sources/ScummVMApp"
     ),
     .testTarget(
       name: "ScummVMTests",
@@ -1193,7 +1196,8 @@ let package = Package(
         // only against the prebuilt engine - exercising the ObjC facade directly
         // requires this import on that platform.
         .target(name: "ScummVMmacOS", condition: .when(platforms: [.macOS])),
-      ]
+      ],
+      path: "swift/Tests/ScummVMTests"
     ),
   ] + engineTargets,
   cLanguageStandard: .c11,

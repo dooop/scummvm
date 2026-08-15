@@ -42,7 +42,7 @@ jobs:
           git fetch --no-tags --depth=1 origin "${{ github.base_ref }}"
           CHANGED="$(git diff --name-only "$BASE"...HEAD)"
           echo "$CHANGED"
-          if echo "$CHANGED" | grep -qE '^(Package\.swift|scummvm$|Sources/ScummVMEngineOverrides/|Sources/ScummVMiOS/|Sources/ScummVMmacOS/|Scripts/|\.gitmodules)'; then
+          if echo "$CHANGED" | grep -qE '^(Package\.swift|scummvm$|swift/Sources/ScummVMEngineOverrides/|swift/Sources/ScummVMiOS/|swift/Sources/ScummVMmacOS/|swift/Scripts/|\.gitmodules)'; then
             echo "engine=true" >> "$GITHUB_OUTPUT"
           else
             echo "engine=false" >> "$GITHUB_OUTPUT"
@@ -93,7 +93,7 @@ jobs:
           path: .build
           # Resources are excluded from the hash: they only move with the submodule,
           # which .scummvmengine-sha already covers, and hashing 86 MB is slow.
-          key: spm-${{ matrix.key }}-v3-${{ hashFiles('Package.swift', 'Package.resolved', '.scummvmengine-sha', 'Sources/**', '!scummvm/**', '!Sources/ScummVMResources*/**', 'Tests/**') }}
+          key: spm-${{ matrix.key }}-v4-${{ hashFiles('Package.swift', 'Package.resolved', '.scummvmengine-sha', 'swift/Sources/**', '!scummvm/**', '!swift/Sources/ScummVMResources*/**', 'swift/Tests/**') }}
 
       - name: Resolve package dependencies
         run: swift package resolve

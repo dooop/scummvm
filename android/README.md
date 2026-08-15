@@ -1,9 +1,9 @@
-# ScummVM for Android — Jetpack Compose wrapper
+# ScummVM Android package
 
 A Gradle build that packages the upstream ScummVM engine as an Android library
-(`.aar`) with a Jetpack Compose view on top. It is the Android counterpart of the
-Swift package in this repository and follows the same rule: the engine comes
-from the `scummvm` git submodule and is never modified.
+(`.aar`) with a Jetpack Compose view on top. It is the Android platform package
+in the `scummvm` repository and follows the shared rule: the engine comes from
+the root `scummvm` git submodule and is never modified.
 
 ```
 ./
@@ -231,6 +231,32 @@ installs the pinned NDK, builds `arm64-v8a` with a representative subset of
 engines (a full engine build does not fit comfortably in a CI run), caches the
 native build directory against the submodule SHA, builds the release test app
 against the just-produced AAR, and uploads both artifacts.
+
+### Development checks
+
+Run focused compilation while editing Kotlin or Compose code:
+
+```bash
+./gradlew :scummvm:assembleDebug
+./gradlew :app:assembleDebug
+```
+
+Before publishing, validate the artifact through the release sample path rather
+than only through the local project dependency:
+
+```bash
+./gradlew :scummvm:assembleRelease
+./gradlew :app:assembleRelease \
+  -Pscummvm.releaseAar="$PWD/android/scummvm/build/outputs/aar/scummvm-release.aar"
+unzip -l android/scummvm/build/outputs/aar/scummvm-release.aar
+```
+
+The AAR must contain `libscummvm.so`, `liboboe.so`, and `libc++_shared.so` for
+every requested ABI, along with the staged runtime assets and JNI-facing Java
+classes. Repository agent workflows for implementation, failure diagnosis, and
+artifact validation live in `.agents/skills/android-compose-development/`,
+`.agents/skills/android-build-triage/`, and
+`.agents/skills/android-release-checks/`.
 
 ## How upstream code is reused
 

@@ -1,6 +1,6 @@
 ---
 mode: agent
-description: Maintain SwiftUI to ObjC++ lifecycle integration. Use when changing start/stop behavior, UI bridging, singleton setup, threading, or platform glue in Sources/ScummVM, Sources/ScummVMiOS, Sources/ScummVMmacOS, or Sources/ScummVMtvOS.
+description: Maintain SwiftUI to ObjC++ lifecycle integration. Use when changing start/stop behavior, UI bridging, singleton setup, threading, or platform glue in swift/Sources/ScummVM, swift/Sources/ScummVMiOS, swift/Sources/ScummVMmacOS, or swift/Sources/ScummVMtvOS.
 ---
 
 # ObjC++ Bridge Lifecycle

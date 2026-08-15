@@ -103,6 +103,5 @@ local.properties
 *.iml
 captures/
 .cxx/
-app/libs/*.aar
-!app/libs/README.md
-
+android/app/libs/*.aar
+!android/app/libs/README.md

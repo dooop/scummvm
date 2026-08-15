@@ -111,7 +111,7 @@ static NSBundle *scummVMIOSModuleResourceBundle() {
 
 		NSArray<NSString *> *candidateBundleNames = @[
 			@"swift_scummvm_ScummVMiOS.bundle",
-			@"swift-scummvm_ScummVMiOS.bundle",
+			@"scummvm_ScummVMiOS.bundle",
 			@"ScummVM_ScummVMiOS.bundle"
 		];
 		NSURL *mainBundleURL = [[NSBundle mainBundle] bundleURL];

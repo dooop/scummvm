@@ -10,7 +10,7 @@ Follow this workflow to fix build failures quickly while preserving repository g
 ## Guardrails
 
 - Never edit files under `scummvm/`.
-- Prefer fixes in `Sources/ScummVM/`, `Sources/ScummVMiOS/`, `Sources/ScummVMmacOS/`, `Sources/ScummVMEngineOverrides/`, and `Package.swift`.
+- Prefer fixes in `swift/Sources/ScummVM/`, `swift/Sources/ScummVMiOS/`, `swift/Sources/ScummVMmacOS/`, `swift/Sources/ScummVMEngineOverrides/`, and `Package.swift`.
 - Keep public API stable: `ScummVM`, `ScummVMView`, `ScummVMEngine`.
 
 ## Workflow
@@ -25,7 +25,7 @@ Follow this workflow to fix build failures quickly while preserving repository g
 3. Select the smallest safe fix surface in this order:
    - wrapper/glue source
    - `Package.swift` flags, exclusions, dependencies, or resources
-   - override translation unit in `Sources/ScummVMEngineOverrides/` plus matching upstream exclude in `Package.swift`
+   - override translation unit in `swift/Sources/ScummVMEngineOverrides/` plus matching upstream exclude in `Package.swift`
 4. Apply a minimal patch and avoid broad refactors during triage.
 5. Rebuild and verify the original error is gone and no new high-severity error replaces it.
 

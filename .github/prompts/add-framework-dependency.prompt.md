@@ -13,9 +13,9 @@ Use this skill when a new prebuilt library needs to be linked into the
 
 ## Step 1: Place the framework
 
-Copy the `.xcframework` bundle into `Frameworks/`:
+Copy the `.xcframework` bundle into `swift/Frameworks/`:
 ```
-Frameworks/<name>.xcframework/
+swift/Frameworks/<name>.xcframework/
 ```
 
 Verify the expected slice directories are present under it.
@@ -28,7 +28,7 @@ or checksum needed for local xcframeworks:
 ```swift
 .binaryTarget(
     name: "<name>",
-    path: "Frameworks/<name>.xcframework"
+    path: "swift/Frameworks/<name>.xcframework"
 ),
 ```
 
@@ -57,9 +57,9 @@ If the library is only available or required on some platforms, use a condition:
 - `Package.swift` resolves without errors (`swift package dump-package`).
 - The engine target links the new framework on all intended platforms.
 - No duplicate symbol errors arise from the new library overlapping with
-  another framework already in `Frameworks/`.
+  another framework already in `swift/Frameworks/`.
 
 ## Rules
 - Never add source files alongside the xcframework — it is binary-only.
 - Do not add xcframeworks that are already covered by the OS SDK.
-- Keep `Frameworks/` sorted alphabetically for readability.
+- Keep `swift/Frameworks/` sorted alphabetically for readability.

@@ -6,18 +6,18 @@ committing, or to diagnose package resolution errors.
 ## Checklist
 
 ### Target membership
-- [ ] Every `.swift` file under `Sources/` belongs to exactly one target.
-- [ ] Every `.mm` / `.cpp` / `.c` file under `Sources/ScummVMiOS/`,
-      `Sources/ScummVMmacOS/`, and `Sources/ScummVMtvOS/` belongs to its
+- [ ] Every `.swift` file under `swift/Sources/` belongs to exactly one target.
+- [ ] Every `.mm` / `.cpp` / `.c` file under `swift/Sources/ScummVMiOS/`,
+      `swift/Sources/ScummVMmacOS/`, and `swift/Sources/ScummVMtvOS/` belongs to its
       respective target.
-- [ ] `Sources/ScummVMEngineOverrides/` files are compiled as part of
-      `ScummVMEngine` (they live under `Sources/` which is the engine target root).
+- [ ] `swift/Sources/ScummVMEngineOverrides/` files are compiled as part of
+      `ScummVMEngine` (they live under `swift/Sources/` which is the engine target root).
 - [ ] No source file appears in two targets simultaneously.
 
 ### Exclusion paths
 - [ ] All paths in `exclude:` are relative to the target's `path:` setting.
-      For `ScummVMEngine` (path: `"Sources"`), exclusions start with
-      `"scummvm/..."` or `"ScummVMEngineOverrides/..."` etc.
+      For `ScummVMEngine` (path: `"swift/Sources"`), exclusions start with
+      `"ScummVMEngine/..."` or `"ScummVMEngineOverrides/..."`.
 - [ ] Exclusion entries are exact directory or file paths — not glob patterns.
 - [ ] Every exclusion for an override has the corresponding comment:
       `// Overridden in ScummVMEngineOverrides: <reason>`.
@@ -26,7 +26,7 @@ committing, or to diagnose package resolution errors.
 ### Frameworks
 - [ ] Every name in `ScummVMEngine`'s `dependencies:` array has a matching
       `.binaryTarget` in the `targets:` list.
-- [ ] Every `.binaryTarget` path points to an existing directory in `Frameworks/`.
+- [ ] Every path-based `.binaryTarget` points to an existing directory in `swift/Frameworks/`; remote targets have valid URLs and checksums.
 - [ ] No framework is listed more than once.
 - [ ] Platform-conditional dependencies use `.when(platforms: [...])` correctly.
 
@@ -53,7 +53,7 @@ malformed JSON/Swift syntax in the manifest.
 
 | Mistake | Symptom | Fix |
 |---|---|---|
-| Exclusion path missing leading target prefix | File compiled twice or not found | Prepend `scummvm/` to the path |
+| Exclusion path missing leading target prefix | File compiled twice or not found | Prepend `ScummVMEngine/` to an upstream path |
 | Binary target name mismatch | `no such module` at link time | Align `.binaryTarget(name:)` with the dependency string |
 | Glob in exclusion list | SPM ignores the entry silently | Use exact path |
 | Stale exclusion after submodule update | Warning or phantom exclusion | Remove the entry |

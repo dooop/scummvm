@@ -37,7 +37,7 @@ git -C ScummVMEngine diff --name-status <old-sha> HEAD
 
 ## Step 4: Check existing overrides against upstream changes
 
-For every file under `Sources/ScummVMEngineOverrides/`, check whether the
+For every file under `swift/Sources/ScummVMEngineOverrides/`, check whether the
 corresponding upstream file changed:
 
 ```sh

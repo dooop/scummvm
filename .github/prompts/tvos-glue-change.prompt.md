@@ -1,6 +1,6 @@
 # Skill: Make a tvOS glue change
 
-Use this skill when modifying `Sources/ScummVMtvOS/`. tvOS glue is distinct from
+Use this skill when modifying `swift/Sources/ScummVMtvOS/`. tvOS glue is distinct from
 iOS glue and must be treated independently.
 
 ## Key differences from iOS glue
@@ -20,7 +20,7 @@ needs.
 ## Structure
 
 ```
-Sources/ScummVMtvOS/
+swift/Sources/ScummVMtvOS/
     include/
         ScummVMEngine.h    -- public ObjC API (keep minimal and stable)
     *.mm                   -- ObjC++ implementation files
@@ -32,7 +32,7 @@ Sources/ScummVMtvOS/
 1. Determine whether the feature is tvOS-specific or shared with iOS.
    - If shared, consider whether a common abstraction belongs in
      `scummvm/` glue rather than duplicating code.
-   - If tvOS-specific, implement only in `Sources/ScummVMtvOS/`.
+   - If tvOS-specific, implement only in `swift/Sources/ScummVMtvOS/`.
 
 2. Keep the public header (`include/ScummVMEngine.h`) stable. Do not add
    symbols to it without an explicit user request.

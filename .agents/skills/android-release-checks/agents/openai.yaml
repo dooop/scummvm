@@ -1,0 +1,4 @@
+interface:
+  display_name: "Android Release Checks"
+  short_description: "Validate Android AAR and sample APK release artifacts"
+  default_prompt: "Use $android-release-checks to verify Android release artifacts, ABI contents, assets, and consumer integration."

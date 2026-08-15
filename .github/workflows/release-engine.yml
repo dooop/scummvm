@@ -82,7 +82,7 @@ jobs:
 
       - name: Build slice
         run: |
-          Scripts/build-engine-slice.sh \
+          swift/Scripts/build-engine-slice.sh \
             "${{ matrix.scheme }}" \
             "${{ matrix.slice }}" \
             "slices/${{ matrix.slice }}" \
@@ -135,7 +135,7 @@ jobs:
           ls -la slices
 
       - name: Create XCFrameworks
-        run: Scripts/make-engine-xcframework.sh slices dist
+        run: swift/Scripts/make-engine-xcframework.sh slices dist
 
       - name: Validate local binary frameworks
         env:
@@ -174,7 +174,7 @@ jobs:
         run: |
           UPSTREAM="$(git -C scummvm rev-parse HEAD)"
           {
-            echo "Prebuilt ScummVM engine for swift-scummvm."
+            echo "Prebuilt ScummVM engine for scummvm."
             echo
             echo "Upstream commit: [\`${UPSTREAM}\`](https://github.com/scummvm/scummvm/commit/${UPSTREAM})"
             echo

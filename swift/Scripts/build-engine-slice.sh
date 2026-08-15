@@ -33,7 +33,8 @@ SLICE_ID="$2"
 OUTPUT_DIR="$3"
 PRODUCT="${4:-$SCHEME}"
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+SWIFT_ROOT="$REPO_ROOT/swift"
 SUBMODULE="$REPO_ROOT/scummvm"
 WORK_DIR="$(mktemp -d)"
 trap 'rm -rf "$WORK_DIR"' EXIT
@@ -245,7 +246,7 @@ fi
 mkdir -p "$BUNDLE_ROOT/Headers" "$BUNDLE_ROOT/Modules" "$RESOURCES"
 
 cp "$DYLIB" "$BUNDLE_ROOT/$PRODUCT"
-cp "$REPO_ROOT/Sources/$SCHEME/include/ScummVMEngine.h" "$BUNDLE_ROOT/Headers/"
+cp "$SWIFT_ROOT/Sources/$SCHEME/include/ScummVMEngine.h" "$BUNDLE_ROOT/Headers/"
 
 cat > "$BUNDLE_ROOT/Modules/module.modulemap" <<EOF
 framework module $PRODUCT {
@@ -295,7 +296,7 @@ cat > "$PLIST" <<EOF
 <dict>
   <key>CFBundleDevelopmentRegion</key><string>en</string>
   <key>CFBundleExecutable</key><string>$PRODUCT</string>
-  <key>CFBundleIdentifier</key><string>dev.dooop.swift-scummvm.$PRODUCT</string>
+  <key>CFBundleIdentifier</key><string>dev.dooop.scummvm.$PRODUCT</string>
   <key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
   <key>CFBundleName</key><string>$PRODUCT</string>
   <key>CFBundlePackageType</key><string>FMWK</string>

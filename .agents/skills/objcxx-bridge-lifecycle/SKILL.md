@@ -1,6 +1,6 @@
 ---
 name: objcxx-bridge-lifecycle
-description: Maintain SwiftUI to Objective-C++ lifecycle integration for ScummVM. Use when changing start/stop behavior, UI bridging, singleton setup, threading, or platform glue in Sources/ScummVM, Sources/ScummVMiOS, or Sources/ScummVMmacOS.
+description: Maintain SwiftUI to Objective-C++ lifecycle integration for ScummVM. Use when changing start/stop behavior, UI bridging, singleton setup, threading, or platform glue in swift/Sources/ScummVM, swift/Sources/ScummVMiOS, swift/Sources/ScummVMmacOS, or swift/Sources/ScummVMtvOS.
 ---
 
 # ObjC++ Bridge Lifecycle

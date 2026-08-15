@@ -4,10 +4,12 @@
 
 - `scummvm/` is upstream source (submodule): read-only for this project.
 - Wrapper/edit surface:
-- `Sources/ScummVM/` (SwiftUI API)
-- `Sources/ScummVMiOS/` and `Sources/ScummVMmacOS/` (ObjC++ bridge)
-- `Sources/ScummVMEngineOverrides/` (replacement translation units)
+- `swift/Sources/ScummVM/` (SwiftUI API)
+- `swift/Sources/ScummVMiOS/` and `swift/Sources/ScummVMmacOS/` (ObjC++ bridge)
+- `swift/Sources/ScummVMEngineOverrides/` (replacement translation units)
 - `Package.swift` (build graph, flags, exclusions, resources)
+- `android/scummvm/` (Compose library, JNI host, Gradle native build and packaging)
+- `android/app/` (sample application and release-AAR consumer validation)
 
 ## Runtime Layers
 
@@ -26,10 +28,16 @@
 4. Engine + resources
 - `Package.swift` target `ScummVMEngine` defines engine dependencies, compile flags, source exclusions, and copied runtime payloads (themes, engine-data, soundfonts, networking assets).
 
+5. Android Compose + JNI host
+- `org.scummvm.ScummVM` owns the Compose lifecycle and delegates to `ScummVMEngine`.
+- `ScummVMHost` preserves the upstream JNI package contract in `org.scummvm.scummvm`.
+- Gradle invokes upstream `configure` and `make` out-of-tree, stages selected upstream Java and runtime assets, and packages native dependencies in the AAR.
+- The sample app consumes the local project in debug and the produced AAR in release.
+
 ## Engine Registration
 
 - Plugin registration is controlled by generated-style tables included by upstream code paths.
-- Wrapper overrides for tables live under `Sources/ScummVMEngineOverrides/engines/` when needed.
+- Wrapper overrides for tables live under `swift/Sources/ScummVMEngineOverrides/engines/` when needed.
 
 ## Override Strategy
 
@@ -38,7 +46,7 @@ Use overrides only when build compatibility cannot be solved by wrapper or packa
 Required pair:
 
 - exclude upstream file path in `Package.swift`
-- provide replacement at mirrored path under `Sources/ScummVMEngineOverrides/`
+- provide replacement at mirrored path under `swift/Sources/ScummVMEngineOverrides/`
 
 ## Change-Risk Hotspots
 
@@ -46,3 +54,4 @@ Required pair:
 - Linkage: mismatched XCFramework slices, missing libs, wrong conditional dependencies.
 - Resource lookup: theme/extra path arguments differ by iOS/tvOS vs macOS behavior.
 - Plugin coverage: detection/plugin table drift after upstream sync.
+- Android packaging: JNI class-name drift, missing staged assets, ABI gaps, or duplicate native runtimes.

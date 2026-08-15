@@ -1,6 +1,6 @@
 ---
 mode: agent
-description: Diagnose XCFramework and native library linkage issues. Use when builds fail with undefined symbols, missing architectures, invalid slices, or platform-specific linker errors involving Frameworks/ and Package.swift dependencies.
+description: Diagnose XCFramework and native library linkage issues. Use when builds fail with undefined symbols, missing architectures, invalid slices, or platform-specific linker errors involving swift/Frameworks/ and Package.swift dependencies.
 ---
 
 # XCFramework Linkage Check

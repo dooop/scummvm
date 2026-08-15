@@ -18,15 +18,16 @@ Validate manifest integrity before and after wrapper-side build changes.
 1. Parse the manifest with `swift package dump-package > /dev/null` before patching.
 2. Validate target boundaries so SwiftUI, platform glue, and engine override sources remain in their intended targets.
 3. Audit exclusion paths for exactness, stale upstream references, and one-to-one pairing with active overrides.
-4. Audit engine dependency names against `.binaryTarget` declarations and confirm each `Frameworks/*.xcframework` path exists.
+4. Audit engine dependency names against `.binaryTarget` declarations; for path-based targets, confirm the referenced `swift/Frameworks/*.xcframework` exists.
 5. Audit platform and toolchain constraints (`iOS 17+`, `tvOS 17+`, `macOS 15+`, `swift-tools-version:6.0`) for accidental drift.
 6. Re-run the build command associated with the manifest change to verify the manifest fix resolves the real failure.
 
 ## Useful Checks
 
 - `swift package describe`
+- `rg 'path: "swift/' Package.swift`
 - `rg "ScummVMEngineOverrides/" Package.swift`
-- `find Sources/ScummVMEngineOverrides -type f`
+- `find swift/Sources/ScummVMEngineOverrides -type f`
 
 ## Report Back
 

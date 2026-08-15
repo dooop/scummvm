@@ -31,7 +31,7 @@ OUTPUT_DIR="$2"
 mkdir -p "$OUTPUT_DIR"
 OUTPUT_DIR="$(cd "$OUTPUT_DIR" && pwd)"
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 : > "$OUTPUT_DIR/checksums.txt"
 
 if [ "$(uname -m)" != "arm64" ]; then
@@ -86,7 +86,7 @@ build_xcframework ScummVMmacOS macos-arm64
 
 # GPLv2+: the binaries must be traceable to the exact sources they were built from.
 {
-  echo "swift-scummvm prebuilt ScummVM engine"
+  echo "scummvm prebuilt ScummVM engine"
   echo
   echo "wrapper commit:  $(git -C "$REPO_ROOT" rev-parse HEAD)"
   echo "upstream commit: $(git -C "$REPO_ROOT/scummvm" rev-parse HEAD)"
@@ -94,7 +94,7 @@ build_xcframework ScummVMmacOS macos-arm64
   echo
   echo "ScummVM is licensed under the GNU General Public License v2 or later."
   echo "The complete corresponding source for these binaries is the upstream commit"
-  echo "above, combined with the overrides in Sources/ScummVMEngineOverrides of the"
+  echo "above, combined with the overrides in swift/Sources/ScummVMEngineOverrides of the"
   echo "wrapper commit above."
 } > "$OUTPUT_DIR/SOURCES.txt"
 

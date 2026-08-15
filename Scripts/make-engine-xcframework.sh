@@ -89,7 +89,7 @@ build_xcframework ScummVMmacOS macos-arm64
   echo "swift-scummvm prebuilt ScummVM engine"
   echo
   echo "wrapper commit:  $(git -C "$REPO_ROOT" rev-parse HEAD)"
-  echo "upstream commit: $(git -C "$REPO_ROOT/Sources/ScummVMEngine" rev-parse HEAD)"
+  echo "upstream commit: $(git -C "$REPO_ROOT/scummvm" rev-parse HEAD)"
   echo "upstream source: https://github.com/scummvm/scummvm"
   echo
   echo "ScummVM is licensed under the GNU General Public License v2 or later."

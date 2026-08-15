@@ -21,7 +21,7 @@ Collect the full error text, including:
 | Swift/ObjC++ interop | `cannot find type`, `use of undeclared identifier` in bridging | Fix or add a header in the relevant `include/` directory |
 | Linker error | `Undefined symbol`, `framework not found` | Add missing xcframework or dependency to target |
 | Concurrency/Swift 6 | `Sendable`, `actor isolation` errors | Fix in glue code only; do not change upstream |
-| Upstream source bug | Error inside `ScummVMEngine/` that cannot be fixed by flags | Use the `create-engine-override` skill |
+| Upstream source bug | Error inside `scummvm/` that cannot be fixed by flags | Use the `create-engine-override` skill |
 
 ## Step 3: Apply the fix in order of preference
 
@@ -36,7 +36,7 @@ error.
 ## Step 4: Verify the fix is scoped correctly
 
 - The fix touches only files in the allowed edit surface (see copilot-instructions).
-- No file under `ScummVMEngine/` has been modified.
+- No file under `scummvm/` has been modified.
 - The same error does not reappear on a clean build.
 
 ## Output format when reporting a diagnosis

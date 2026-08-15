@@ -1,6 +1,6 @@
 ---
 name: scummvm-override-workflow
-description: Create and maintain minimal override translation units for ScummVM wrapper compatibility. Use when an upstream source in Sources/ScummVMEngine/ cannot be built as-is in this Swift package and must be replaced by a file in Sources/ScummVMEngineOverrides/ with a synchronized exclusion in Package.swift.
+description: Create and maintain minimal override translation units for ScummVM wrapper compatibility. Use when an upstream source in scummvm/ cannot be built as-is in this Swift package and must be replaced by a file in Sources/ScummVMEngineOverrides/ with a synchronized exclusion in Package.swift.
 ---
 
 # ScummVM Override Workflow
@@ -10,7 +10,7 @@ Use this process when source replacement is unavoidable.
 ## Guardrails
 
 - Treat override work as a last resort.
-- Never edit `Sources/ScummVMEngine/` directly.
+- Never edit `scummvm/` directly.
 - Keep behavior aligned with upstream; change only what is required for platform/SPM compatibility.
 
 ## Workflow

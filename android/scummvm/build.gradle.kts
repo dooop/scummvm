@@ -14,8 +14,8 @@ plugins {
 // Upstream engine location
 // ---------------------------------------------------------------------------
 // Everything C/C++ and the JNI-facing Java classes are consumed straight out of
-// the git submodule; nothing under Sources/ScummVMEngine is ever modified.
-val upstreamDir: File = rootProject.file("../Sources/ScummVMEngine")
+// the git submodule; nothing under scummvm is ever modified.
+val upstreamDir: File = rootProject.file("scummvm")
 val upstreamAndroidJavaDir = File(upstreamDir, "backends/platform/android/org/scummvm/scummvm")
 
 require(File(upstreamDir, "configure").isFile) {
@@ -63,7 +63,7 @@ val prebuiltLibsDir: String? = providers.gradleProperty("scummvm.prebuiltLibsDir
     ?.takeIf(String::isNotBlank)
 
 android {
-    namespace = "de.doop.scummvm"
+    namespace = "org.scummvm"
     compileSdk {
         version = release(36)
     }
@@ -130,7 +130,7 @@ fun resolveSdkDir(): File {
         ?: System.getenv("ANDROID_SDK_ROOT")
         ?: System.getenv("ANDROID_HOME")
         ?: error(
-            "Android SDK not found. Set sdk.dir in android/local.properties or export ANDROID_SDK_ROOT.",
+            "Android SDK not found. Set sdk.dir in local.properties or export ANDROID_SDK_ROOT.",
         )
     return File(candidate).also {
         require(it.isDirectory) { "Android SDK directory does not exist: $it" }

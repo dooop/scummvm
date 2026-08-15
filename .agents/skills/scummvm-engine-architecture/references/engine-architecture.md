@@ -2,7 +2,7 @@
 
 ## Repository Boundaries
 
-- `Sources/ScummVMEngine/` is upstream source (submodule): read-only for this project.
+- `scummvm/` is upstream source (submodule): read-only for this project.
 - Wrapper/edit surface:
 - `Sources/ScummVM/` (SwiftUI API)
 - `Sources/ScummVMiOS/` and `Sources/ScummVMmacOS/` (ObjC++ bridge)

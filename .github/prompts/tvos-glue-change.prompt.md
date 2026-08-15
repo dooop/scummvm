@@ -31,7 +31,7 @@ Sources/ScummVMtvOS/
 
 1. Determine whether the feature is tvOS-specific or shared with iOS.
    - If shared, consider whether a common abstraction belongs in
-     `Sources/ScummVMEngine/` glue rather than duplicating code.
+     `scummvm/` glue rather than duplicating code.
    - If tvOS-specific, implement only in `Sources/ScummVMtvOS/`.
 
 2. Keep the public header (`include/ScummVMEngine.h`) stable. Do not add

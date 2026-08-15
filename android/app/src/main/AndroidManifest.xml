@@ -23,7 +23,7 @@
             android:value="true" />
 
         <activity
-            android:name="de.doop.scummvm.MainActivity"
+            android:name="org.scummvm.MainActivity"
             android:configChanges="orientation|screenSize|keyboardHidden"
             android:exported="true"
             android:launchMode="singleTask">

@@ -1,7 +1,7 @@
 # Skill: Update the ScummVMEngine submodule
 
 Use this skill when pulling a new commit of the upstream ScummVM submodule into
-`ScummVMEngine/`. The goal is to absorb upstream changes without breaking the
+`scummvm/`. The goal is to absorb upstream changes without breaking the
 build or silently invalidating existing overrides.
 
 ## Step 1: Record the current submodule commit
@@ -69,5 +69,5 @@ chore: update ScummVMEngine to <new-sha-short>
 ```
 
 ## Rules
-- Never edit files under `ScummVMEngine/`.
+- Never edit files under `scummvm/`.
 - Always resolve stale override/exclusion pairs after an update.

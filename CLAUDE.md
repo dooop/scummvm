@@ -40,7 +40,7 @@ Build for iOS/tvOS/macOS in Xcode: open `Package.swift` directly, or add it as a
 
 Build the Android AAR (needs JDK 17+, the Android SDK, and NDK 23.2.8568313 exactly — see `android/README.md`):
 ```sh
-cd android && ./gradlew :scummvm:assembleRelease
+./gradlew :scummvm:assembleRelease
 ```
 
 CI (`.github/workflows/ci.yml`) runs two Apple tiers on GitHub-hosted `macos-15` runners: a *binary build* on macOS/iOS/tvOS that exercises exactly what consumers get (plus a symbol and resource smoke test on macOS), and a *source build* that only runs when engine-facing paths changed — `Package.swift`, `Sources/ScummVMEngineOverrides/`, `Sources/ScummVMiOS/`, `Sources/ScummVMmacOS/`, `Scripts/`, the submodule pointer — or on pushes to `main`. The Android AAR is built on `ubuntu-latest` and always runs, since Android has no prebuilt-binary mode to fall back on.
@@ -52,7 +52,7 @@ gh workflow run release-engine.yml -f tag=engine-0.2.0
 
 ## Non-negotiable rules
 
-- **Never modify anything under `Sources/ScummVMEngine/`.** It is a git submodule of upstream `scummvm/scummvm` and must remain untouched — no edits, deletions, or reformatting.
+- **Never modify anything under `scummvm/`.** It is a git submodule of upstream `scummvm/scummvm` and must remain untouched — no edits, deletions, or reformatting.
 - All changes must live in wrapper/glue code, `Package.swift`, or `android/`.
 - If a build issue requires changing upstream source, add a replacement translation unit under `Sources/ScummVMEngineOverrides/` at the mirrored path and exclude the original upstream file in `Package.swift`'s `exclude` list. This is the *only* sanctioned way to alter engine behavior.
 - Overrides must be minimal diffs from the upstream original (to keep future submodule resyncs tractable) — change only what's necessary, don't rewrite.
@@ -109,7 +109,7 @@ A separate Gradle build producing an AAR; see `android/README.md` for the full p
 - Known limitation: the engine is a process-wide singleton, so `ScummVMEngine` allows exactly one run per process.
 
 ### Submodule sync workflow
-When updating `Sources/ScummVMEngine` to a newer upstream commit: record the current SHA first (`git -C Sources/ScummVMEngine rev-parse HEAD`) as a rollback point, run `git submodule update --remote Sources/ScummVMEngine`, then diff file additions/removals against the old SHA to catch new files that could clash with the `ScummVMEngine` target and stale `Package.swift` exclusions that no longer point at real files. Re-check every file under `Sources/ScummVMEngineOverrides/` against the corresponding upstream diff. Check whether the runtime payload's file list changed — the same set is spelled out twice, in the `resources:` rules in `Package.swift` and in `Scripts/build-engine-slice.sh`, and both have to agree. On the Android side, re-check `upstreamJavaSources` in `android/scummvm/build.gradle.kts` (files moved or gained an `R`/`ScummVMActivity` dependency?), the `stageScummVMAssets` file lists against `Makefile.common`'s `DIST_FILES_*`, and whether `dists/android/build.gradle`'s `ndkVersion` changed. Then publish a new engine release.
+When updating `scummvm` to a newer upstream commit: record the current SHA first (`git -C scummvm rev-parse HEAD`) as a rollback point, run `git submodule update --remote scummvm`, then diff file additions/removals against the old SHA to catch new files that could clash with the `ScummVMEngine` target and stale `Package.swift` exclusions that no longer point at real files. Re-check every file under `Sources/ScummVMEngineOverrides/` against the corresponding upstream diff. Check whether the runtime payload's file list changed — the same set is spelled out twice, in the `resources:` rules in `Package.swift` and in `Scripts/build-engine-slice.sh`, and both have to agree. On the Android side, re-check `upstreamJavaSources` in `android/scummvm/build.gradle.kts` (files moved or gained an `R`/`ScummVMActivity` dependency?), the `stageScummVMAssets` file lists against `Makefile.common`'s `DIST_FILES_*`, and whether `dists/android/build.gradle`'s `ndkVersion` changed. Then publish a new engine release.
 
 ## Repository skills
 

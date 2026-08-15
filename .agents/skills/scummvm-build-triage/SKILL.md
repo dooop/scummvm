@@ -1,6 +1,6 @@
 ---
 name: scummvm-build-triage
-description: Diagnose and resolve build failures in the Swift ScummVM wrapper package. Use when swift build, Xcode, or CI reports compile, link, header, macro, or target-configuration errors in ScummVM, ScummVMEngine, ScummVMiOS, ScummVMmacOS, or ScummVMtvOS. Prioritize fixes in wrapper and Package.swift and never modify upstream sources under Sources/ScummVMEngine/.
+description: Diagnose and resolve build failures in the Swift ScummVM wrapper package. Use when swift build, Xcode, or CI reports compile, link, header, macro, or target-configuration errors in ScummVM, ScummVMEngine, ScummVMiOS, ScummVMmacOS, or ScummVMtvOS. Prioritize fixes in wrapper and Package.swift and never modify upstream sources under scummvm/.
 ---
 
 # ScummVM Build Triage
@@ -9,7 +9,7 @@ Follow this workflow to fix build failures quickly while preserving repository g
 
 ## Guardrails
 
-- Never edit files under `Sources/ScummVMEngine/`.
+- Never edit files under `scummvm/`.
 - Prefer fixes in `Sources/ScummVM/`, `Sources/ScummVMiOS/`, `Sources/ScummVMmacOS/`, `Sources/ScummVMEngineOverrides/`, and `Package.swift`.
 - Keep public API stable: `ScummVM`, `ScummVMView`, `ScummVMEngine`.
 

@@ -9,15 +9,15 @@ val releaseAar = providers.gradleProperty("scummvm.releaseAar")
 android {
     // Must differ from the consumed AAR's namespace; AGP rejects duplicate
     // namespaces during manifest merging. The application id and Activity
-    // package remain de.doop.scummvm.
-    namespace = "de.doop.scummvm.app"
+    // package remain org.scummvm.
+    namespace = "org.scummvm.app"
     compileSdk {
         version = release(37)
     }
     enableKotlin = true
 
     defaultConfig {
-        applicationId = "de.doop.scummvm"
+        applicationId = "org.scummvm"
         minSdk = 23
         targetSdk = 37
         versionCode = 1

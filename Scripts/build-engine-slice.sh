@@ -34,7 +34,7 @@ OUTPUT_DIR="$3"
 PRODUCT="${4:-$SCHEME}"
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-SUBMODULE="$REPO_ROOT/Sources/ScummVMEngine"
+SUBMODULE="$REPO_ROOT/scummvm"
 WORK_DIR="$(mktemp -d)"
 trap 'rm -rf "$WORK_DIR"' EXIT
 

@@ -1,7 +1,7 @@
 # Skill: Create an engine override
 
 Use this skill when a build error requires changing an upstream source file under
-`ScummVMEngine/`. Never edit that file directly — create a replacement under
+`scummvm/`. Never edit that file directly — create a replacement under
 `Sources/ScummVMEngineOverrides/` instead.
 
 ## Prerequisites
@@ -11,13 +11,13 @@ Use this skill when a build error requires changing an upstream source file unde
 ## Steps
 
 ### 1. Locate the upstream file
-Note its path relative to `ScummVMEngine/`, e.g.
-`ScummVMEngine/backends/platform/sdl/sdl.cpp`.
+Note its path relative to `scummvm/`, e.g.
+`scummvm/backends/platform/sdl/sdl.cpp`.
 
 Read it and understand the minimal change needed to fix the error.
 
 ### 2. Determine the mirror path under ScummVMEngineOverrides/
-Strip the `ScummVMEngine/` prefix and place the file under
+Strip the `scummvm/` prefix and place the file under
 `Sources/ScummVMEngineOverrides/` preserving subdirectory structure, e.g.
 `Sources/ScummVMEngineOverrides/backends/platform/sdl/sdl.cpp`.
 
@@ -31,7 +31,7 @@ Copy the upstream file verbatim, then apply only the minimum change required.
 In the `ScummVMEngine` target's `exclude:` list, add the path relative to
 `Sources/`, e.g.:
 ```swift
-"ScummVMEngine/backends/platform/sdl/sdl.cpp",
+"scummvm/backends/platform/sdl/sdl.cpp",
 ```
 Place the entry in the appropriate section of the exclusion list (grouped by
 subsystem where possible).
@@ -46,10 +46,10 @@ Add a comment above the exclusion entry in `Package.swift` that names the
 override file and states the reason, so future maintainers know it exists:
 ```swift
 // Overridden in ScummVMEngineOverrides: <reason>
-"ScummVMEngine/backends/platform/sdl/sdl.cpp",
+"scummvm/backends/platform/sdl/sdl.cpp",
 ```
 
 ## Rules (non-negotiable)
-- Never modify anything under `ScummVMEngine/`.
+- Never modify anything under `scummvm/`.
 - Keep the override as a minimal diff from the upstream original.
 - One override per upstream file — do not consolidate multiple files.

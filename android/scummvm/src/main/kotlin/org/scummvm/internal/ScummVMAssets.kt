@@ -1,4 +1,4 @@
-package de.doop.scummvm.internal
+package org.scummvm.internal
 
 import android.content.res.AssetManager
 import android.util.Log

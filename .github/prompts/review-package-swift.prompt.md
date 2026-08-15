@@ -17,7 +17,7 @@ committing, or to diagnose package resolution errors.
 ### Exclusion paths
 - [ ] All paths in `exclude:` are relative to the target's `path:` setting.
       For `ScummVMEngine` (path: `"Sources"`), exclusions start with
-      `"ScummVMEngine/..."` or `"ScummVMEngineOverrides/..."` etc.
+      `"scummvm/..."` or `"ScummVMEngineOverrides/..."` etc.
 - [ ] Exclusion entries are exact directory or file paths — not glob patterns.
 - [ ] Every exclusion for an override has the corresponding comment:
       `// Overridden in ScummVMEngineOverrides: <reason>`.
@@ -53,7 +53,7 @@ malformed JSON/Swift syntax in the manifest.
 
 | Mistake | Symptom | Fix |
 |---|---|---|
-| Exclusion path missing leading target prefix | File compiled twice or not found | Prepend `ScummVMEngine/` to the path |
+| Exclusion path missing leading target prefix | File compiled twice or not found | Prepend `scummvm/` to the path |
 | Binary target name mismatch | `no such module` at link time | Align `.binaryTarget(name:)` with the dependency string |
 | Glob in exclusion list | SPM ignores the entry silently | Use exact path |
 | Stale exclusion after submodule update | Warning or phantom exclusion | Remove the entry |

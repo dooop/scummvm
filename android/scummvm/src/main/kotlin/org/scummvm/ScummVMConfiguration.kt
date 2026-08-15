@@ -1,4 +1,4 @@
-package de.doop.scummvm
+package org.scummvm
 
 import android.net.Uri
 import androidx.compose.runtime.Immutable

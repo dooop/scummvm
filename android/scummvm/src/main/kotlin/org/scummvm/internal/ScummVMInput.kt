@@ -1,4 +1,4 @@
-package de.doop.scummvm.internal
+package org.scummvm.internal
 
 import android.content.Context
 import android.content.pm.PackageManager
@@ -8,7 +8,7 @@ import android.view.KeyCharacterMap
 import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.View
-import de.doop.scummvm.ScummVMTouchMode
+import org.scummvm.ScummVMTouchMode
 import org.scummvm.scummvm.ScummVM
 
 /**

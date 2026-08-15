@@ -24,3 +24,6 @@ rootProject.name = "scummvm-android"
 
 include(":scummvm")
 include(":app")
+
+project(":scummvm").projectDir = file("android/scummvm")
+project(":app").projectDir = file("android/app")

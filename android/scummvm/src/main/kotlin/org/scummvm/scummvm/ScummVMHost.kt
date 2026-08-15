@@ -12,7 +12,7 @@ import android.os.Looper
 import android.util.Log
 import android.view.SurfaceHolder
 import android.widget.Toast
-import de.doop.scummvm.internal.ScummVMPaths
+import org.scummvm.internal.ScummVMPaths
 
 /**
  * Concrete [ScummVM] the native engine calls back into.

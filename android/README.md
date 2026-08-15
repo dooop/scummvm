@@ -3,28 +3,31 @@
 A Gradle build that packages the upstream ScummVM engine as an Android library
 (`.aar`) with a Jetpack Compose view on top. It is the Android counterpart of the
 Swift package in this repository and follows the same rule: the engine comes
-from the `Sources/ScummVMEngine` git submodule and is never modified.
+from the `scummvm` git submodule and is never modified.
 
 ```
-android/
-├── settings.gradle.kts
-├── gradle/libs.versions.toml
-├── app/                         ← Compose test app, produces the APK
-│   ├── build.gradle.kts         ← debug/local and release/AAR selection
-│   ├── libs/                    ← default location for an uploaded AAR
-│   └── src/main/kotlin/de/doop/scummvm/
-└── scummvm/                     ← the library module, produces the AAR
-    ├── build.gradle.kts         ← native build + asset staging + packaging
-    ├── consumer-rules.pro
-    └── src/main/
-        ├── java/org/scummvm/scummvm/   ← one shim for an upstream declaration
-        └── kotlin/
-            ├── de/doop/scummvm/        ← the public Compose API
-            └── org/scummvm/scummvm/    ← glue that needs upstream package access
+./
+├── settings.gradle.kts          ← root Android Studio project
+├── gradle/                      ← version catalog and wrapper
+├── gradlew
+├── scummvm/                     ← upstream engine submodule
+└── android/
+    ├── app/                     ← Compose test app, produces the APK
+    │   ├── build.gradle.kts     ← debug/local and release/AAR selection
+    │   ├── libs/                ← default location for an uploaded AAR
+    │   └── src/main/kotlin/org/scummvm/
+    └── scummvm/                 ← the library module, produces the AAR
+        ├── build.gradle.kts     ← native build + asset staging + packaging
+        ├── consumer-rules.pro
+        └── src/main/
+            ├── java/org/scummvm/scummvm/  ← upstream declaration shim
+            └── kotlin/
+                ├── org/scummvm/           ← public Compose API
+                └── org/scummvm/scummvm/   ← upstream-package glue
 ```
 
 The library namespace, public Compose API, application ID, and Activity package
-are `de.doop.scummvm`. The test app uses `de.doop.scummvm.app` only for its
+are `org.scummvm`. The test app uses `org.scummvm.app` only for its
 generated-code namespace because Android Gradle rejects an app and a consumed
 AAR with identical namespaces. The JNI compatibility classes must remain in
 `org.scummvm.scummvm`: upstream's native backend looks them up by that exact
@@ -33,8 +36,8 @@ binary name, including when a prebuilt `libscummvm.so` is used.
 ## Usage
 
 ```kotlin
-import de.doop.scummvm.ScummVM
-import de.doop.scummvm.ScummVMConfiguration
+import org.scummvm.ScummVM
+import org.scummvm.ScummVMConfiguration
 
 setContent {
     ScummVM(
@@ -85,7 +88,7 @@ not torn down on rotation, and `android:hardwareAccelerated="true"`.
 Prerequisites:
 
 * JDK 17 or newer.
-* Android SDK, with `sdk.dir` in `android/local.properties` or `ANDROID_SDK_ROOT`
+* Android SDK, with `sdk.dir` in `local.properties` or `ANDROID_SDK_ROOT`
   exported.
 * **NDK 29.0.14206865 by default (r28 or newer is required).** These revisions
   build 16 KB-compatible ELF libraries and provide a compatible
@@ -102,7 +105,7 @@ Prerequisites:
 Then:
 
 ```bash
-cd android && ./gradlew :scummvm:assembleRelease
+./gradlew :scummvm:assembleRelease
 ```
 
 The AAR lands in `android/scummvm/build/outputs/aar/`.

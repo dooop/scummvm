@@ -7,9 +7,9 @@
 
 ## Structure map
 - `Package.swift` defines Swift Package targets, exclusions, and build flags.
-- `ScummVMEngine/` is the upstream ScummVM git submodule (do not edit).
+- `scummvm/` is the upstream ScummVM git submodule (do not edit).
 - `Sources/ScummVM/` contains SwiftUI wrappers (`ScummVM`, `ScummVMView`, `ScummVMViewModel`, `ScummVMGamePathResolver`).
-- `Sources/ScummVMEngine/` contains the engine target glue and overrides.
+- `scummvm/` contains the shared upstream engine sources.
 - `Sources/ScummVMEngineOverrides/` contains replacement translation units for build fixes.
 - `Sources/ScummVMiOS/` and `Sources/ScummVMmacOS/` contain ObjC++ platform glue.
 - `Sources/ScummVMiOS/include/ScummVMEngine.h` and `Sources/ScummVMmacOS/include/ScummVMEngine.h` are the public ObjC APIs.
@@ -18,7 +18,7 @@
 - [ZIPFoundation](https://github.com/weichsel/ZIPFoundation) 0.9.20+ is a Swift Package dependency used by `ScummVMGamePathResolver` for archive extraction.
 
 ## Non-negotiable rules (read first)
-- Never modify anything under `ScummVMEngine/`. It is a git submodule of upstream ScummVM.
+- Never modify anything under `scummvm/`. It is a git submodule of upstream ScummVM.
 - Never delete, reformat, or "fix" upstream sources. Keep upstream code intact.
 - All changes must be in wrapper/glue code or in `Package.swift`.
 - If a build issue requires source changes, add a replacement file in `Sources/ScummVMEngineOverrides/` and exclude the upstream file in `Package.swift`.
@@ -71,7 +71,7 @@ Detailed workflows live in `.github/prompts/`. Apply the corresponding skill whe
 | Editing `plugins_table.h` or `detection_table.h` | `skill-plugins-table-maintainer` |
 | Reviewing or planning architecture-level changes | `skill-scummvm-engine-architecture` |
 | Undefined symbol / missing slice / linker errors involving `Frameworks/` | `skill-xcframework-linkage-check` |
-| Updating `Sources/ScummVMEngine` to a newer upstream commit | `skill-scummvm-submodule-sync` |
+| Updating `scummvm` to a newer upstream commit | `skill-scummvm-submodule-sync` |
 | Reviewing `Package.swift` for target/exclusion/dependency consistency | `skill-package-swift-auditor` |
 
 Read the matching skill prompt before making changes in that area.

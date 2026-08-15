@@ -1,4 +1,4 @@
-package de.doop.scummvm
+package org.scummvm
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect

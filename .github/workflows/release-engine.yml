@@ -172,7 +172,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.tag.outputs.value }}
         run: |
-          UPSTREAM="$(git -C Sources/ScummVMEngine rev-parse HEAD)"
+          UPSTREAM="$(git -C scummvm rev-parse HEAD)"
           {
             echo "Prebuilt ScummVM engine for swift-scummvm."
             echo
@@ -230,6 +230,6 @@ jobs:
           git push origin "$BRANCH"
           gh pr create \
             --title "chore: point Package.swift at engine release ${TAG}" \
-            --body "Automated bump from the engine release pipeline. Upstream commit: \`$(git -C Sources/ScummVMEngine rev-parse HEAD)\`." \
+            --body "Automated bump from the engine release pipeline. Upstream commit: \`$(git -C scummvm rev-parse HEAD)\`." \
             --base "${{ github.event.repository.default_branch }}" \
             --head "$BRANCH"

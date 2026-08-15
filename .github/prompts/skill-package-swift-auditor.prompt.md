@@ -9,7 +9,7 @@ Validate manifest integrity before and after wrapper-side build changes.
 
 ## Guardrails
 
-- Never modify files under `Sources/ScummVMEngine/`.
+- Never modify files under `scummvm/`.
 - Prefer minimal manifest edits that preserve existing target boundaries.
 - Treat override and exclusion mismatches as correctness bugs, not cleanup tasks.
 

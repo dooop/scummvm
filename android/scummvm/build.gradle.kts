@@ -65,7 +65,7 @@ val prebuiltLibsDir: String? = providers.gradleProperty("scummvm.prebuiltLibsDir
 android {
     namespace = "org.scummvm"
     compileSdk {
-        version = release(36)
+        version = release(37)
     }
     enableKotlin = true
 

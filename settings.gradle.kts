@@ -20,7 +20,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "scummvm-android"
+rootProject.name = "scummvm"
 
 include(":scummvm")
 include(":app")

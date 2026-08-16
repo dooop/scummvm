@@ -93,7 +93,7 @@ Add it as a Swift Package dependency and build for your platform target. SwiftPM
 gh workflow run release-engine.yml -f tag=engine-0.2.0
 ```
 
-The scripts it drives ([`Scripts/build-engine-slice.sh`](Scripts/build-engine-slice.sh), [`Scripts/make-engine-xcframework.sh`](Scripts/make-engine-xcframework.sh)) also run standalone. Each release carries a `SOURCES.txt` naming the exact upstream and wrapper commits the binaries were built from, which is what the GPL requires when distributing binaries.
+The scripts it drives ([`scripts/build-engine-slice.sh`](../scripts/build-engine-slice.sh), [`scripts/make-engine-xcframework.sh`](../scripts/make-engine-xcframework.sh)) also run standalone from the repository root. Each release carries a `SOURCES.txt` naming the exact upstream and wrapper commits the binaries were built from, which is what the GPL requires when distributing binaries.
 
 The release workflow validates the freshly assembled local XCFrameworks before publishing them. `SCUMMVM_ENGINE_ARTIFACTS_DIR` is reserved for that check and points binary mode at an XCFramework directory relative to the package root.
 
@@ -162,7 +162,7 @@ If you need manual control, you can use `ScummVMView` and call `ScummVMEngineSha
 - The engine target links against remote XCFramework binary targets from the pinned GitHub Release in `../Package.swift`. If you see missing symbols, verify the uploaded XCFrameworks include the platform slice you are building for and that the checksums in `../Package.swift` match the uploaded zip assets.
 - iOS/tvOS uses the upstream iOS7 backend; macOS uses the SDL backend.
 - In source mode, `ScummVMtvOS` is a thin Swift re-export of `ScummVMiOS` (`@_exported import ScummVMiOS`) with no separate ObjC++ glue of its own, and it packages the tvOS assets directly. In binary mode it's its own `ScummVMtvOS.xcframework`, built from the same `ScummVMiOS` source/scheme but published as a distinct product/module so iOS and tvOS consumers don't share a download.
-- The payload layout is load-bearing: the backend locates it by recursively scanning a bundle for `engine_data_core.mk` and `scummmodern.zip`, preferring the theme zip next to the engine-data directory. Keep `engine-data/` as the only subdirectory and everything else flat beside it, in both the `../Package.swift` resource rules and `Scripts/build-engine-slice.sh`.
+- The payload layout is load-bearing: the backend locates it by recursively scanning a bundle for `engine_data_core.mk` and `scummmodern.zip`, preferring the theme zip next to the engine-data directory. Keep `engine-data/` as the only subdirectory and everything else flat beside it, in both the `../Package.swift` resource rules and `../scripts/build-engine-slice.sh`.
 - On iOS/tvOS `mainBundle.resourcePath` is the `.app` root, so the recursive scan reaches the embedded framework on its own. On macOS it is `Contents/Resources` and the framework sits outside it, which is why `Sources/ScummVMmacOS/ScummVMAppContext.mm` searches the framework bundle explicitly.
 - Changing engine code without publishing a new engine release is a silent no-op for consumers — they keep linking the last released binary. Run the release workflow.
 - `ScummVMEngine` sources are taken from the upstream submodule (`scummvm/`).
@@ -171,7 +171,7 @@ If you need manual control, you can use `ScummVMView` and call `ScummVMEngineSha
 
 ## Quick start (read before making changes)
 - Never modify anything under `scummvm/`. It is a git submodule of upstream ScummVM and must remain untouched.
-- Allowed edit surface: `Sources/ScummVM/`, `Sources/ScummVMiOS/`, `Sources/ScummVMmacOS/`, `Sources/ScummVMtvOS/`, `Sources/ScummVMEngineOverrides/`, `Scripts/`, `../Package.swift`, and this README.
+- Allowed edit surface: `Sources/ScummVM/`, `Sources/ScummVMiOS/`, `Sources/ScummVMmacOS/`, `Sources/ScummVMtvOS/`, `Sources/ScummVMEngineOverrides/`, `../scripts/`, `../Package.swift`, and this README.
 - If a build issue needs source changes, add a replacement file in `Sources/ScummVMEngineOverrides/` and exclude the upstream file in `../Package.swift`.
 - Keep public API small and stable: `ScummVM`, `ScummVMView`, `ScummVMEngine`.
 - Capture exact build errors before proposing fixes; prefer minimal wrapper or build-flag changes.

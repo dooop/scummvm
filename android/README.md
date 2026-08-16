@@ -335,7 +335,7 @@ than only through the local project dependency:
 ./gradlew :app:assembleRelease \
   -Pscummvm.releaseAar="$PWD/android/scummvm/build/outputs/aar/scummvm-release.aar"
 unzip -l android/scummvm/build/outputs/aar/scummvm-release.aar
-android/Scripts/verify-release-artifacts.sh \
+scripts/verify-release-artifacts.sh \
   android/scummvm/build/outputs/aar/scummvm-release.aar \
   android/app/build/outputs/apk/release/app-release-unsigned.apk \
   arm64-v8a,x86_64

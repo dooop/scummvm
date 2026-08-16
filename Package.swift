@@ -331,7 +331,7 @@ let engineTargets: [Target] =
       resources: [
         // Core runtime payload expected by ScummVM. In binary mode the release
         // pipeline copies the same files into the framework's own Resources
-        // directory - see swift/Scripts/build-engine-slice.sh, keep the two in sync.
+        // directory - see scripts/build-engine-slice.sh, keep the two in sync.
         .copy("ScummVMEngine/dists/engine-data"),
         .copy("ScummVMEngine/dists/networking/wwwroot.zip"),
         .copy("ScummVMEngine/dists/soundfonts/Roland_SC-55.sf2"),

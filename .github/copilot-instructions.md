@@ -9,8 +9,9 @@
 ## Structure map
 
 - `Package.swift`: root SwiftPM entry point; Swift targets map explicitly into `swift/`.
-- `swift/`: SwiftUI sources, Objective-C++ glue, tests, framework staging, release scripts, and Swift documentation.
+- `swift/`: SwiftUI sources, Objective-C++ glue, tests, framework staging, and Swift documentation.
 - `android/`: Jetpack Compose library and sample app; root Gradle files configure both modules.
+- `scripts/`: shared Apple and Android build, packaging, and release-validation utilities.
 - `scummvm/`: upstream ScummVM submodule shared by Swift source mode and Android; never edit.
 - `swift/Sources/ScummVMEngine`: read-only symlink to `../../scummvm` for SwiftPM target scoping.
 - `.agents/skills/`: focused Apple, Android, packaging, and submodule workflows.
@@ -29,7 +30,7 @@
 
 - Sources: `swift/Sources/`
 - Tests: `swift/Tests/`
-- XCFramework tooling: `swift/Scripts/`
+- XCFramework tooling: `scripts/`
 - Documentation: `swift/README.md`
 - Default build mode uses remote engine XCFrameworks. Set `SCUMMVM_BUILD_FROM_SOURCE=1` for engine, override, glue, or build-flag changes and run `swift package reset` when switching modes.
 - Supported: iOS 17+, tvOS 17+, macOS 15+, arm64 only.

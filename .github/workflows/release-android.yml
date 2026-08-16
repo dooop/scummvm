@@ -155,7 +155,7 @@ jobs:
 
       - name: Verify release artifacts
         run: |
-          android/Scripts/verify-release-artifacts.sh \
+          scripts/verify-release-artifacts.sh \
             android/scummvm/build/outputs/aar/scummvm-release.aar \
             android/app/build/outputs/apk/release/app-release-unsigned.apk \
             "${SCUMMVM_ABIS}"

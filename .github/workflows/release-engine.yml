@@ -82,7 +82,7 @@ jobs:
 
       - name: Build slice
         run: |
-          swift/Scripts/build-engine-slice.sh \
+          scripts/build-engine-slice.sh \
             "${{ matrix.scheme }}" \
             "${{ matrix.slice }}" \
             "slices/${{ matrix.slice }}" \
@@ -135,7 +135,7 @@ jobs:
           ls -la slices
 
       - name: Create XCFrameworks
-        run: swift/Scripts/make-engine-xcframework.sh slices dist
+        run: scripts/make-engine-xcframework.sh slices dist
 
       - name: Validate local binary frameworks
         env:

@@ -9,6 +9,7 @@ Thin native wrappers around the upstream [ScummVM](https://github.com/scummvm/sc
 ├── Package.swift          SwiftPM entry point
 ├── swift/                 SwiftUI, Objective-C++, tests, and XCFramework tooling
 ├── android/               Jetpack Compose library and sample application
+├── scripts/               Apple and Android build, packaging, and validation utilities
 ├── scummvm/               upstream ScummVM submodule (read-only)
 ├── gradle/                shared Android Gradle wrapper and version catalog
 └── .agents/               repository development workflows and checks
@@ -40,7 +41,7 @@ Build the Android library:
 ./gradlew :scummvm:assembleRelease
 ```
 
-See the platform README before changing engine integration or publishing artifacts. Swift source, tests, and packaging scripts live under `swift/`; only the consumer-facing `Package.swift` stays at the repository root.
+See the platform README before changing engine integration or publishing artifacts. Platform source and tests live under `swift/` and `android/`; repository utilities are centralized under `scripts/`.
 
 ## Formatting & linting
 

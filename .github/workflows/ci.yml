@@ -42,7 +42,7 @@ jobs:
           git fetch --no-tags --depth=1 origin "${{ github.base_ref }}"
           CHANGED="$(git diff --name-only "$BASE"...HEAD)"
           echo "$CHANGED"
-          if echo "$CHANGED" | grep -qE '^(Package\.swift|scummvm$|swift/Sources/ScummVMEngineOverrides/|swift/Sources/ScummVMiOS/|swift/Sources/ScummVMmacOS/|swift/Scripts/|\.gitmodules)'; then
+          if echo "$CHANGED" | grep -qE '^(Package\.swift|scummvm$|swift/Sources/ScummVMEngineOverrides/|swift/Sources/ScummVMiOS/|swift/Sources/ScummVMmacOS/|scripts/(build-engine-slice|make-engine-xcframework)\.sh|\.gitmodules)'; then
             echo "engine=true" >> "$GITHUB_OUTPUT"
           else
             echo "engine=false" >> "$GITHUB_OUTPUT"
@@ -315,7 +315,7 @@ jobs:
 
       - name: Verify release artifacts
         run: |
-          android/Scripts/verify-release-artifacts.sh \
+          scripts/verify-release-artifacts.sh \
             android/scummvm/build/outputs/aar/scummvm-release.aar \
             android/app/build/outputs/apk/release/app-release-unsigned.apk \
             "${SCUMMVM_ABIS}"

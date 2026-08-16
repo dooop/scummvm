@@ -33,7 +33,7 @@ SLICE_ID="$2"
 OUTPUT_DIR="$3"
 PRODUCT="${4:-$SCHEME}"
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SWIFT_ROOT="$REPO_ROOT/swift"
 SUBMODULE="$REPO_ROOT/scummvm"
 WORK_DIR="$(mktemp -d)"

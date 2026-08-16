@@ -31,7 +31,7 @@ OUTPUT_DIR="$2"
 mkdir -p "$OUTPUT_DIR"
 OUTPUT_DIR="$(cd "$OUTPUT_DIR" && pwd)"
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 : > "$OUTPUT_DIR/checksums.txt"
 
 if [ "$(uname -m)" != "arm64" ]; then

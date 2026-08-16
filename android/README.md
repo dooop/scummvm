@@ -36,7 +36,7 @@ binary name, including when a prebuilt `libscummvm.so` is used.
 ## Usage
 
 Published releases are available from this repository's GitHub Packages Maven
-registry as `io.github.dooop:scummvm-android:<version>`. GitHub Packages requires
+registry as `io.github.dooop:scummvm:<version>`. GitHub Packages requires
 authentication even for public packages. Add a GitHub user and a classic
 personal access token with `read:packages` to your user-level
 `~/.gradle/gradle.properties` (never commit the token):
@@ -69,7 +69,7 @@ Compose, and coroutine dependencies used by the wrapper:
 
 ```kotlin
 dependencies {
-    implementation("io.github.dooop:scummvm-android:1.0.0")
+    implementation("io.github.dooop:scummvm:1.0.0")
 }
 ```
 
@@ -286,27 +286,25 @@ engines (a full engine build does not fit comfortably in a CI run), caches the
 native build directory against the submodule SHA, builds the release test app
 against the just-produced AAR, and uploads both artifacts.
 
-`.github/workflows/release-android.yml` publishes production releases. Push a
-tag named `android-v<version>`, for example:
-
-```bash
-git tag android-v1.0.0
-git push origin android-v1.0.0
-```
-
-The workflow builds the full stable engine set separately for `arm64-v8a` and
-`x86_64`, combines both slices into one AAR, builds the sample app from that
-exact AAR, validates contents, ELF architecture, and 16 KB alignment, and then
-publishes these Maven coordinates to this repository's GitHub Packages registry:
+`.github/workflows/release-android-publish.yml` is the reusable workflow that
+builds the full stable engine set separately for `arm64-v8a` and `x86_64`,
+combines both slices into one AAR, builds the sample app from that exact AAR,
+validates contents, ELF architecture, and 16 KB alignment, and then publishes
+these Maven coordinates to this repository's GitHub Packages registry:
 
 ```text
-io.github.dooop:scummvm-android:<version>
+io.github.dooop:scummvm:<version>
 ```
 
-It can also be started manually with a Maven version. Published versions are
-immutable; use a new version after a failed or incorrect release. The workflow's
-verified artifact bundle includes the AAR, sources JAR, generated POM, sample
-APK, and a provenance file recording wrapper/upstream commits, ABIs, and NDK.
+It is called automatically, with the version taken from the Swift package tag,
+whenever an engine XCFramework version-bump PR is merged (see the root
+`CLAUDE.md` for that flow) — Android and the Swift package always ship the same
+version. `.github/workflows/release-android.yml` wraps the same reusable
+workflow behind a manual `workflow_dispatch` for an out-of-band Android-only
+republish (e.g. after a failed or incorrect release; published versions are
+immutable, so use a new version). The workflow's verified artifact bundle
+includes the AAR, sources JAR, generated POM, sample APK, and a provenance file
+recording wrapper/upstream commits, ABIs, and NDK.
 
 For a local credentialed publication (normally only the workflow should do
 this), use:

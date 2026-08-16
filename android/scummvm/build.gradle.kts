@@ -649,7 +649,7 @@ androidComponents {
 publishing {
     publications {
         register<MavenPublication>("release") {
-            artifactId = "scummvm-android"
+            artifactId = "scummvm"
 
             afterEvaluate {
                 from(components["release"])

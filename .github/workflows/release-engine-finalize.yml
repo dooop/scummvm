@@ -1,0 +1,52 @@
+name: Finalize engine release
+
+# Completes the flow started by release-engine.yml: once its "engine-bump/<tag>"
+# PR merges, the Package.swift commit pointing at the draft release's assets is
+# on main, so it's now safe to publish the draft (which creates the real git tag,
+# at the merge commit) and to publish the matching Android AAR under the same
+# version via the shared release-android-publish.yml workflow.
+
+on:
+  pull_request:
+    types: [closed]
+
+concurrency:
+  group: release-engine-finalize-${{ github.event.pull_request.head.ref }}
+  cancel-in-progress: false
+
+jobs:
+  finalize:
+    name: Publish release and tag
+    if: github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'engine-bump/')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    outputs:
+      tag: ${{ steps.tag.outputs.value }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Resolve tag
+        id: tag
+        env:
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: echo "value=${HEAD_REF#engine-bump/}" >> "$GITHUB_OUTPUT"
+
+      - name: Publish draft release at merge commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.tag.outputs.value }}
+          MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+        run: gh release edit "$TAG" --target "$MERGE_SHA" --draft=false
+
+  publish-android:
+    name: Publish matching Android AAR
+    needs: finalize
+    uses: ./.github/workflows/release-android-publish.yml
+    permissions:
+      contents: read
+      packages: write
+    with:
+      version: ${{ needs.finalize.outputs.tag }}

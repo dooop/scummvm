@@ -87,11 +87,13 @@ Add it as a Swift Package dependency and build for your platform target. SwiftPM
    ```
 
 ## Releasing the prebuilt engine
-[`release-engine.yml`](../.github/workflows/release-engine.yml) builds all five slices in parallel, assembles the three XCFrameworks, publishes them as release assets and opens a PR bumping `engineBinaryBaseURL` plus all three checksums in `../Package.swift`. Run it after any change to engine sources, overrides, glue or engine build flags — otherwise consumers keep linking the previous engine.
+[`release-engine.yml`](../.github/workflows/release-engine.yml) builds all five slices in parallel, assembles the three XCFrameworks, publishes them as **draft** release assets and opens a PR bumping `engineBinaryBaseURL` plus all three checksums in `../Package.swift`. Run it after any change to engine sources, overrides, glue or engine build flags — otherwise consumers keep linking the previous engine.
 
 ```sh
-gh workflow run release-engine.yml -f tag=engine-0.2.0
+gh workflow run release-engine.yml -f tag=0.7.0
 ```
+
+The release stays a draft — and its git tag does not exist yet — until the bump PR merges. [`release-engine-finalize.yml`](../.github/workflows/release-engine-finalize.yml) then publishes the draft at the merge commit (so the tag always has a matching `Package.swift`) and, via the reusable [`release-android-publish.yml`](../.github/workflows/release-android-publish.yml) workflow, automatically publishes the Android AAR under the same version.
 
 The scripts it drives ([`scripts/build-engine-slice.sh`](../scripts/build-engine-slice.sh), [`scripts/make-engine-xcframework.sh`](../scripts/make-engine-xcframework.sh)) also run standalone from the repository root. Each release carries a `SOURCES.txt` naming the exact upstream and wrapper commits the binaries were built from, which is what the GPL requires when distributing binaries.
 

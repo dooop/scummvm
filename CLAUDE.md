@@ -15,7 +15,7 @@ Thin platform wrappers around the upstream ScummVM codebase: a SwiftUI wrapper p
 
 The two modes are mutually exclusive and deliberately reuse the same target names, so no dependent target's dependency list differs between them. SwiftPM caches the parsed manifest by content, not by environment — run `swift package reset` after flipping the switch.
 
-**Any change that affects compiled engine output is invisible to consumers until a new engine release is published.** Run `.github/workflows/release-engine.yml` and merge the resulting `Package.swift` bump.
+**Any change that affects compiled engine output is invisible to consumers until a new engine release is published.** Run `.github/workflows/release-engine.yml` and merge the resulting `Package.swift` bump — see the release pipeline section below for what that bump PR merge triggers.
 
 ## Commands
 
@@ -47,8 +47,9 @@ CI (`.github/workflows/ci.yml`) runs two Apple tiers on GitHub-hosted `macos-15`
 
 Publish a new prebuilt engine (`.github/workflows/release-engine.yml`):
 ```sh
-gh workflow run release-engine.yml -f tag=engine-0.2.0
+gh workflow run release-engine.yml -f tag=0.7.0
 ```
+This only creates a **draft** GitHub release (assets uploaded, no git tag yet) and opens an `engine-bump/<tag>` PR bumping `Package.swift` to point at it. Merging that PR is what makes the release real: `.github/workflows/release-engine-finalize.yml` then publishes the draft — creating the tag at the merge commit, so the tag never points at a commit with a stale `Package.swift` — and automatically publishes the matching Android AAR (same version number) via the reusable `.github/workflows/release-android-publish.yml` workflow. `.github/workflows/release-android.yml` is a manual `workflow_dispatch`-only wrapper around that same reusable workflow, for an out-of-band Android republish (published Maven versions are immutable, so use a new version).
 
 ## Non-negotiable rules
 

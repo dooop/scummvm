@@ -1,0 +1,191 @@
+name: Publish Android AAR to Maven
+
+# Reusable workflow: builds the native engine for both ABIs, combines them into
+# one AAR, validates it, and publishes it to GitHub Packages under the given
+# Maven version. Called by release-android.yml (manual dispatch) and by
+# release-engine-finalize.yml (automatic, same version as the Swift package
+# tag) - see the root CLAUDE.md for the overall release flow.
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: "Maven version to publish (for example 1.2.3)"
+        required: true
+        type: string
+
+concurrency:
+  group: release-android-publish-${{ inputs.version }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  NDK_VERSION: "29.0.14206865"
+  SCUMMVM_ABIS: "arm64-v8a,x86_64"
+
+jobs:
+  build-native:
+    name: Build native engine (${{ matrix.abi }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    strategy:
+      fail-fast: false
+      matrix:
+        abi: [arm64-v8a, x86_64]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          submodules: recursive
+          fetch-depth: 1
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4
+
+      - name: Install NDK ${{ env.NDK_VERSION }}
+        run: |
+          sdkmanager --install "ndk;${NDK_VERSION}"
+          echo "ANDROID_NDK_ROOT=${ANDROID_SDK_ROOT}/ndk/${NDK_VERSION}" >> "$GITHUB_ENV"
+          echo "ANDROID_NDK_HOME=${ANDROID_SDK_ROOT}/ndk/${NDK_VERSION}" >> "$GITHUB_ENV"
+
+      - name: Record upstream commit
+        run: git -C scummvm rev-parse HEAD > .scummvmengine-sha
+
+      - name: Cache native engine build
+        uses: actions/cache@v6
+        with:
+          path: android/scummvm/build/native
+          key: android-release-native-v1-${{ matrix.abi }}-${{ hashFiles('.scummvmengine-sha', 'android/scummvm/build.gradle.kts', 'gradle.properties') }}
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v5
+
+      - name: Build full engine AAR
+        run: |
+          ./gradlew --no-daemon :scummvm:assembleRelease \
+            -Pscummvm.abis="${{ matrix.abi }}"
+
+      - name: Upload ABI AAR
+        uses: actions/upload-artifact@v7
+        with:
+          name: scummvm-android-${{ matrix.abi }}
+          path: android/scummvm/build/outputs/aar/scummvm-release.aar
+          if-no-files-found: error
+          retention-days: 2
+
+  publish:
+    name: Verify and publish Maven package
+    needs: build-native
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          submodules: recursive
+          fetch-depth: 1
+
+      - name: Validate version
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z][0-9A-Za-z.-]*)?$ ]]; then
+            echo "::error::Invalid Maven version: $VERSION"
+            exit 1
+          fi
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4
+
+      - name: Install NDK ${{ env.NDK_VERSION }}
+        run: |
+          sdkmanager --install "ndk;${NDK_VERSION}"
+          echo "ANDROID_NDK_ROOT=${ANDROID_SDK_ROOT}/ndk/${NDK_VERSION}" >> "$GITHUB_ENV"
+          echo "ANDROID_NDK_HOME=${ANDROID_SDK_ROOT}/ndk/${NDK_VERSION}" >> "$GITHUB_ENV"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v5
+
+      - name: Download ABI AARs
+        uses: actions/download-artifact@v8
+        with:
+          pattern: scummvm-android-*
+          path: abi-aars
+
+      - name: Prepare aggregate native libraries
+        run: |
+          for abi in arm64-v8a x86_64; do
+            aar="abi-aars/scummvm-android-${abi}/scummvm-release.aar"
+            test -f "$aar"
+            mkdir -p "prebuilt-libs/${abi}"
+            unzip -p "$aar" "jni/${abi}/libscummvm.so" > "prebuilt-libs/${abi}/libscummvm.so"
+            unzip -p "$aar" "jni/${abi}/libc++_shared.so" > "prebuilt-libs/${abi}/libc++_shared.so"
+          done
+
+      - name: Build aggregate AAR
+        run: |
+          ./gradlew --no-daemon :scummvm:assembleRelease \
+            -Pscummvm.abis="${SCUMMVM_ABIS}" \
+            -Pscummvm.prebuiltLibsDir="${GITHUB_WORKSPACE}/prebuilt-libs" \
+            -Pscummvm.version="${{ inputs.version }}"
+
+      - name: Build sample app from aggregate AAR
+        run: |
+          ./gradlew --no-daemon :app:assembleRelease \
+            -Pscummvm.releaseAar="${GITHUB_WORKSPACE}/android/scummvm/build/outputs/aar/scummvm-release.aar" \
+            -Pscummvm.abis="${SCUMMVM_ABIS}"
+
+      - name: Verify release artifacts
+        run: |
+          scripts/verify-release-artifacts.sh \
+            android/scummvm/build/outputs/aar/scummvm-release.aar \
+            android/app/build/outputs/apk/release/app-release-unsigned.apk \
+            "${SCUMMVM_ABIS}"
+
+      - name: Publish to GitHub Packages
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ./gradlew --no-daemon :scummvm:publishReleasePublicationToGitHubPackagesRepository \
+            -Pscummvm.abis="${SCUMMVM_ABIS}" \
+            -Pscummvm.prebuiltLibsDir="${GITHUB_WORKSPACE}/prebuilt-libs" \
+            -Pscummvm.version="${{ inputs.version }}" \
+            -Pscummvm.githubRepository="${GITHUB_REPOSITORY}"
+
+      - name: Write release provenance
+        run: |
+          {
+            echo "coordinates=io.github.dooop:scummvm:${{ inputs.version }}"
+            echo "repository=${GITHUB_REPOSITORY}"
+            echo "wrapper_commit=${GITHUB_SHA}"
+            echo "upstream_commit=$(git -C scummvm rev-parse HEAD)"
+            echo "abis=${SCUMMVM_ABIS}"
+            echo "ndk=${NDK_VERSION}"
+          } > android-release-provenance.txt
+
+      - name: Upload verified release artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: scummvm-android-${{ inputs.version }}
+          path: |
+            android/scummvm/build/outputs/aar/scummvm-release.aar
+            android/scummvm/build/publications/release/pom-default.xml
+            android/scummvm/build/intermediates/source_jar/release/release-sources.jar
+            android/app/build/outputs/apk/release/app-release-unsigned.apk
+            android-release-provenance.txt
+          if-no-files-found: error

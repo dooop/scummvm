@@ -6,17 +6,18 @@ name: Release engine XCFrameworks
 # runtime payload, so consumers need neither the submodule nor the 24 dependency
 # XCFrameworks.
 #
-# Trigger with a tag (engine-1.2.3) or manually. After the release exists, bump
-# engineBinaryBaseURL and all three checksums in Package.swift - the job prints them
-# and opens a PR when run with bump_manifest.
+# This job only creates a DRAFT release and uploads assets to it, then opens a PR
+# bumping engineBinaryBaseURL and all three checksums in Package.swift. A draft
+# release reserves the tag name without creating the actual git tag, so the tag
+# never points at a commit whose Package.swift is stale. release-engine-finalize.yml
+# publishes the draft (which creates the real tag, at the bump PR's merge commit)
+# once that PR merges, and automatically publishes the matching Android AAR.
 
 on:
-  push:
-    tags: ["engine-*"]
   workflow_dispatch:
     inputs:
       tag:
-        description: "Release tag to create (e.g. engine-0.1.0)"
+        description: "Release tag to create (e.g. 0.7.0)"
         required: true
       bump_manifest:
         description: "Open a PR bumping Package.swift to this release"
@@ -160,14 +161,9 @@ jobs:
 
       - name: Resolve release tag
         id: tag
-        run: |
-          if [ "${{ github.event_name }}" = "push" ]; then
-            echo "value=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
-          else
-            echo "value=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
-          fi
+        run: echo "value=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
 
-      - name: Create release and upload assets
+      - name: Create draft release and upload assets
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.tag.outputs.value }}
@@ -193,9 +189,12 @@ jobs:
               esac
             done < dist/checksums.txt
             echo '```'
+            echo
+            echo "This release is a draft until [the version-bump PR](../../pulls?q=is%3Apr+head%3Aengine-bump%2F${TAG}) merges - the tag is not created until then."
           } > release-notes.md
 
           gh release create "$TAG" \
+            --draft \
             --title "$TAG" \
             --notes-file release-notes.md \
             dist/ScummVMiOS.xcframework.zip \
@@ -204,7 +203,7 @@ jobs:
             dist/SOURCES.txt
 
       - name: Bump Package.swift
-        if: github.event_name == 'workflow_dispatch' && inputs.bump_manifest
+        if: inputs.bump_manifest
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.tag.outputs.value }}
@@ -228,8 +227,9 @@ jobs:
           git add Package.swift
           git commit -m "chore: point Package.swift at engine release ${TAG}"
           git push origin "$BRANCH"
+          PR_BODY="$(printf 'Automated bump from the engine release pipeline. Upstream commit: `%s`.\n\nMerging this PR publishes the draft `%s` release (creating the real tag at the merge commit) and automatically publishes the matching `io.github.dooop:scummvm:%s` Android AAR - see release-engine-finalize.yml.' "$(git -C scummvm rev-parse HEAD)" "$TAG" "$TAG")"
           gh pr create \
             --title "chore: point Package.swift at engine release ${TAG}" \
-            --body "Automated bump from the engine release pipeline. Upstream commit: \`$(git -C scummvm rev-parse HEAD)\`." \
+            --body "$PR_BODY" \
             --base "${{ github.event.repository.default_branch }}" \
             --head "$BRANCH"

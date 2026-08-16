@@ -42,6 +42,24 @@ Build the Android library:
 
 See the platform README before changing engine integration or publishing artifacts. Swift source, tests, and packaging scripts live under `swift/`; only the consumer-facing `Package.swift` stays at the repository root.
 
+## Formatting & linting
+
+Swift wrapper code is formatted with the `swift-format` tool bundled in the Swift 6 toolchain, configured by `.swift-format`:
+
+```sh
+swift format lint --recursive --strict swift/Sources swift/Tests Package.swift
+swift format format --in-place --recursive swift/Sources swift/Tests Package.swift
+```
+
+Kotlin code is linted with [ktlint](https://github.com/ktlint/ktlint) via the `org.jlleitschuh.gradle.ktlint` Gradle plugin:
+
+```sh
+./gradlew ktlintCheck
+./gradlew ktlintFormat
+```
+
+Both run in CI (`lint-swift`, `lint-kotlin` jobs in `.github/workflows/ci.yml`).
+
 ## Development rules
 
 - Never edit `scummvm/` or `swift/Sources/ScummVMEngine`; both expose upstream source.

@@ -110,6 +110,18 @@ Then:
 
 The AAR lands in `android/scummvm/build/outputs/aar/`.
 
+### Formatting & linting
+
+Kotlin sources are linted with [ktlint](https://github.com/ktlint/ktlint) via the
+`org.jlleitschuh.gradle.ktlint` Gradle plugin, applied to `:scummvm` and `:app`:
+
+```sh
+./gradlew ktlintCheck
+./gradlew ktlintFormat
+```
+
+Runs in CI as the `lint-kotlin` job in `.github/workflows/ci.yml`.
+
 ### Test app build modes
 
 The `:app` module opens ScummVM's launcher in a full-screen Compose host. Its

@@ -17,7 +17,7 @@ Thin native wrappers around the upstream [ScummVM](https://github.com/scummvm/sc
 Platform documentation:
 
 - [Swift package](swift/README.md) — iOS 17+, tvOS 17+, and macOS 15+ integration, source/binary build modes, lifecycle, testing, and engine releases.
-- [Android](android/README.md) — Compose API, AAR integration, native NDK build, sample app, release validation, and known limitations.
+- [Android](android/README.md) — Compose API, GitHub Packages Maven/AAR integration, native NDK build, sample app, release workflow, validation, and known limitations.
 
 ## Quick start
 

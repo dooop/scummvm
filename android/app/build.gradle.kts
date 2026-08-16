@@ -18,6 +18,12 @@ val releaseAar =
                 .asFile.absolutePath,
         )
 
+val scummvmAbis =
+    (providers.gradleProperty("scummvm.abis").orNull ?: "arm64-v8a,x86_64")
+        .split(",")
+        .map(String::trim)
+        .filter(String::isNotEmpty)
+
 android {
     // Must differ from the consumed AAR's namespace; AGP rejects duplicate
     // namespaces during manifest merging. The application id and Activity
@@ -34,6 +40,9 @@ android {
         targetSdk = 37
         versionCode = 1
         versionName = "1.0"
+        ndk {
+            abiFilters += scummvmAbis
+        }
     }
 
     buildFeatures {

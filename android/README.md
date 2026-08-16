@@ -35,6 +35,46 @@ binary name, including when a prebuilt `libscummvm.so` is used.
 
 ## Usage
 
+Published releases are available from this repository's GitHub Packages Maven
+registry as `io.github.dooop:scummvm-android:<version>`. GitHub Packages requires
+authentication even for public packages. Add a GitHub user and a classic
+personal access token with `read:packages` to your user-level
+`~/.gradle/gradle.properties` (never commit the token):
+
+```properties
+gpr.user=YOUR_GITHUB_USER
+gpr.key=YOUR_GITHUB_TOKEN
+```
+
+Add the repository to the consuming project's `settings.gradle.kts`:
+
+```kotlin
+dependencyResolutionManagement {
+    repositories {
+        google()
+        mavenCentral()
+        maven {
+            url = uri("https://maven.pkg.github.com/dooop/scummvm")
+            credentials {
+                username = providers.gradleProperty("gpr.user").orNull
+                password = providers.gradleProperty("gpr.key").orNull
+            }
+        }
+    }
+}
+```
+
+Then declare the library dependency; its Maven metadata brings in the AndroidX,
+Compose, and coroutine dependencies used by the wrapper:
+
+```kotlin
+dependencies {
+    implementation("io.github.dooop:scummvm-android:1.0.0")
+}
+```
+
+Replace `1.0.0` with a version shown under the repository's Packages page.
+
 ```kotlin
 import org.scummvm.ScummVM
 import org.scummvm.ScummVMConfiguration
@@ -229,6 +269,8 @@ Set in `gradle.properties` or on the command line with `-P`.
 | `scummvm.configureArgs` | *(empty)* | Extra `./configure` flags, e.g. `--disable-all-engines --enable-engine=scumm,sky`. Empty means every stable engine — a long build. |
 | `scummvm.buildJobs` | *(CPU count)* | `make -j` parallelism. |
 | `scummvm.prebuiltLibsDir` | *(unset)* | Skip the native build and package `<dir>/<abi>/libscummvm.so` instead. An optional adjacent 16 KB-compatible `libc++_shared.so` is preferred over the selected NDK copy. |
+| `scummvm.version` | `0.0.0-SNAPSHOT` | Maven publication version. An explicit value is required for remote publication. |
+| `scummvm.githubRepository` | `dooop/scummvm` | Owner/repository used for the GitHub Packages Maven endpoint. |
 
 Iterating on the Kotlin layer without rebuilding the engine:
 
@@ -236,13 +278,45 @@ Iterating on the Kotlin layer without rebuilding the engine:
 ./gradlew :scummvm:assembleRelease -Pscummvm.prebuiltLibsDir=/path/to/libs
 ```
 
-### CI
+### CI and releases
 
 `.github/workflows/ci.yml` has a `build-android` job on `ubuntu-latest`. It
 installs the pinned NDK, builds `arm64-v8a` with a representative subset of
 engines (a full engine build does not fit comfortably in a CI run), caches the
 native build directory against the submodule SHA, builds the release test app
 against the just-produced AAR, and uploads both artifacts.
+
+`.github/workflows/release-android.yml` publishes production releases. Push a
+tag named `android-v<version>`, for example:
+
+```bash
+git tag android-v1.0.0
+git push origin android-v1.0.0
+```
+
+The workflow builds the full stable engine set separately for `arm64-v8a` and
+`x86_64`, combines both slices into one AAR, builds the sample app from that
+exact AAR, validates contents, ELF architecture, and 16 KB alignment, and then
+publishes these Maven coordinates to this repository's GitHub Packages registry:
+
+```text
+io.github.dooop:scummvm-android:<version>
+```
+
+It can also be started manually with a Maven version. Published versions are
+immutable; use a new version after a failed or incorrect release. The workflow's
+verified artifact bundle includes the AAR, sources JAR, generated POM, sample
+APK, and a provenance file recording wrapper/upstream commits, ABIs, and NDK.
+
+For a local credentialed publication (normally only the workflow should do
+this), use:
+
+```bash
+./gradlew :scummvm:publishReleasePublicationToGitHubPackagesRepository \
+  -Pscummvm.version=1.0.0 \
+  -Pgpr.user=YOUR_GITHUB_USER \
+  -Pgpr.key=YOUR_GITHUB_TOKEN
+```
 
 ### Development checks
 
@@ -261,6 +335,10 @@ than only through the local project dependency:
 ./gradlew :app:assembleRelease \
   -Pscummvm.releaseAar="$PWD/android/scummvm/build/outputs/aar/scummvm-release.aar"
 unzip -l android/scummvm/build/outputs/aar/scummvm-release.aar
+android/Scripts/verify-release-artifacts.sh \
+  android/scummvm/build/outputs/aar/scummvm-release.aar \
+  android/app/build/outputs/apk/release/app-release-unsigned.apk \
+  arm64-v8a,x86_64
 ```
 
 The AAR must contain `libscummvm.so`, `liboboe.so`, and `libc++_shared.so` for

@@ -1,3 +1,4 @@
+import org.gradle.api.publish.maven.tasks.PublishToMavenRepository
 import org.gradle.process.ExecOperations
 import java.security.MessageDigest
 import java.util.Properties
@@ -9,7 +10,11 @@ plugins {
     // standalone org.jetbrains.kotlin.android plugin must not be applied.
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ktlint)
+    `maven-publish`
 }
+
+group = "io.github.dooop"
+version = providers.gradleProperty("scummvm.version").getOrElse("0.0.0-SNAPSHOT")
 
 ktlint {
     android.set(true)
@@ -102,6 +107,12 @@ android {
 
     lint {
         abortOnError = false
+    }
+
+    publishing {
+        singleVariant("release") {
+            withSourcesJar()
+        }
     }
 }
 
@@ -628,5 +639,76 @@ androidComponents {
         variant.sources.java?.addGeneratedSourceDirectory(stageUpstreamJava, StageFiles::outputDir)
         variant.sources.assets?.addGeneratedSourceDirectory(stageAssets, StageFiles::outputDir)
         variant.sources.jniLibs?.addGeneratedSourceDirectory(stageJniLibs, StageFiles::outputDir)
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Maven publication
+// ---------------------------------------------------------------------------
+
+publishing {
+    publications {
+        register<MavenPublication>("release") {
+            artifactId = "scummvm-android"
+
+            afterEvaluate {
+                from(components["release"])
+            }
+
+            pom {
+                name.set("ScummVM Android")
+                description.set("Android AAR and Jetpack Compose host for the ScummVM engine.")
+                url.set("https://github.com/dooop/scummvm")
+                licenses {
+                    license {
+                        name.set("GNU General Public License v3.0 or later")
+                        url.set("https://www.gnu.org/licenses/gpl-3.0.html")
+                        distribution.set("repo")
+                    }
+                }
+                developers {
+                    developer {
+                        id.set("dooop")
+                        name.set("Dominic Szablewski")
+                    }
+                }
+                scm {
+                    connection.set("scm:git:https://github.com/dooop/scummvm.git")
+                    developerConnection.set("scm:git:ssh://git@github.com/dooop/scummvm.git")
+                    url.set("https://github.com/dooop/scummvm")
+                }
+            }
+        }
+    }
+
+    repositories {
+        maven {
+            name = "GitHubPackages"
+            url =
+                uri(
+                    "https://maven.pkg.github.com/" +
+                        providers.gradleProperty("scummvm.githubRepository").getOrElse("dooop/scummvm"),
+                )
+            credentials {
+                username =
+                    providers
+                        .gradleProperty("gpr.user")
+                        .orElse(providers.environmentVariable("GITHUB_ACTOR"))
+                        .orNull
+                password =
+                    providers
+                        .gradleProperty("gpr.key")
+                        .orElse(providers.environmentVariable("GITHUB_TOKEN"))
+                        .orNull
+            }
+        }
+    }
+}
+
+tasks.withType<PublishToMavenRepository>().configureEach {
+    doFirst {
+        require(project.version != "0.0.0-SNAPSHOT") {
+            "Publishing requires an explicit version, for example -Pscummvm.version=1.2.3."
+        }
     }
 }

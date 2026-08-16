@@ -55,7 +55,7 @@ done
 
 READELF="${READELF:-}"
 if [ -z "$READELF" ] && [ -n "${ANDROID_NDK_ROOT:-}" ]; then
-    READELF="$(find "$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt" -path '*/bin/llvm-readelf' -type f -print -quit)"
+    READELF="$(find "$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt" -path '*/bin/llvm-readelf' \( -type f -o -type l \) -print -quit)"
 fi
 [ -x "$READELF" ] || {
     echo "Set READELF or ANDROID_NDK_ROOT so ELF architecture and alignment can be checked." >&2

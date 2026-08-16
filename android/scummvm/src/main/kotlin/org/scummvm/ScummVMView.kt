@@ -32,8 +32,9 @@ import org.scummvm.internal.ScummVMInput
  * engine at all. Upstream's `EditableSurfaceView` goes considerably further to
  * work around bugs in specific Latin IMEs; that is not reproduced here.
  */
-internal class ScummVMSurfaceView(context: Context) : SurfaceView(context) {
-
+internal class ScummVMSurfaceView(
+    context: Context,
+) : SurfaceView(context) {
     internal var input: ScummVMInput? = null
 
     init {
@@ -77,11 +78,12 @@ fun ScummVMView(
     engine: ScummVMEngine,
     modifier: Modifier = Modifier,
 ) {
-    val folderPicker = rememberLauncherForActivityResult(
-        ActivityResultContracts.OpenDocumentTree(),
-    ) { uri ->
-        engine.deliverPickedFolder(uri)
-    }
+    val folderPicker =
+        rememberLauncherForActivityResult(
+            ActivityResultContracts.OpenDocumentTree(),
+        ) { uri ->
+            engine.deliverPickedFolder(uri)
+        }
 
     DisposableEffect(engine) {
         // Lets the engine's "add game folder" flow reach the system picker.
@@ -91,13 +93,14 @@ fun ScummVMView(
 
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner, engine) {
-        val observer = LifecycleEventObserver { _, event ->
-            when (event) {
-                Lifecycle.Event.ON_RESUME -> engine.setPaused(false)
-                Lifecycle.Event.ON_PAUSE -> engine.setPaused(true)
-                else -> Unit
+        val observer =
+            LifecycleEventObserver { _, event ->
+                when (event) {
+                    Lifecycle.Event.ON_RESUME -> engine.setPaused(false)
+                    Lifecycle.Event.ON_PAUSE -> engine.setPaused(true)
+                    else -> Unit
+                }
             }
-        }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
@@ -125,9 +128,7 @@ fun ScummVMView(
 
 /** Remembers a [ScummVMEngine] bound to the current composition. */
 @Composable
-fun rememberScummVMEngine(
-    configuration: ScummVMConfiguration = ScummVMConfiguration(),
-): ScummVMEngine {
+fun rememberScummVMEngine(configuration: ScummVMConfiguration = ScummVMConfiguration()): ScummVMEngine {
     val context = LocalContext.current
     return remember(configuration) { ScummVMEngine(context, configuration) }
 }

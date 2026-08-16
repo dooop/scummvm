@@ -33,11 +33,10 @@ internal class ScummVMHost(
     holder: SurfaceHolder,
     onDestroyed: (Thread, Int) -> Unit,
 ) : ScummVM(
-    context.assets,
-    holder,
-    MyScummVMDestroyedCallback { onDestroyed(Thread.currentThread(), it) },
-) {
-
+        context.assets,
+        holder,
+        MyScummVMDestroyedCallback { onDestroyed(Thread.currentThread(), it) },
+    ) {
     private val mainHandler = Handler(Looper.getMainLooper())
 
     private val clipboard: ClipboardManager?
@@ -71,8 +70,9 @@ internal class ScummVMHost(
 
     override fun openUrl(url: String?) {
         if (url == null) return
-        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        val intent =
+            Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         try {
             context.startActivity(intent)
         } catch (e: android.content.ActivityNotFoundException) {
@@ -101,8 +101,9 @@ internal class ScummVMHost(
     // merges nothing), so the missing-permission case is handled at runtime instead.
     @android.annotation.SuppressLint("MissingPermission")
     override fun isConnectionLimited(): Boolean {
-        val manager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
-            ?: return true
+        val manager =
+            context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+                ?: return true
         return try {
             manager.isActiveNetworkMetered
         } catch (e: SecurityException) {
@@ -146,7 +147,10 @@ internal class ScummVMHost(
         delegate.onCurrentGame(target)
     }
 
-    override fun notifyHTTPService(localPort: Int, minimal: Boolean) {
+    override fun notifyHTTPService(
+        localPort: Int,
+        minimal: Boolean,
+    ) {
         // Upstream advertises the built-in web server over NSD so it shows up in
         // "ScummVM on the local network". A library has no business registering
         // a service on the host app's behalf, so this is left to the app.
@@ -163,7 +167,11 @@ internal class ScummVMHost(
             emptyArray()
         }
 
-    override fun getNewSAFTree(write: Boolean, initialURI: String?, prompt: String?): SAFFSTree? {
+    override fun getNewSAFTree(
+        write: Boolean,
+        initialURI: String?,
+        prompt: String?,
+    ): SAFFSTree? {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) return null
         val uri = delegate.pickFolder(write, initialURI, prompt) ?: return null
         return SAFFSTree.newTree(context, uri)
@@ -181,7 +189,10 @@ internal class ScummVMHost(
 
     override fun exportBackup(prompt: String?): Int = BACKUP_CANCELLED
 
-    override fun importBackup(prompt: String?, path: String?): Int = BACKUP_CANCELLED
+    override fun importBackup(
+        prompt: String?,
+        path: String?,
+    ): Int = BACKUP_CANCELLED
 
     private companion object {
         /**
@@ -219,5 +230,9 @@ internal interface ScummVMHostDelegate {
      * Called on the engine thread and expected to block until the user has
      * picked a folder (or dismissed the picker). Returns null when unavailable.
      */
-    fun pickFolder(write: Boolean, initialUri: String?, prompt: String?): Uri?
+    fun pickFolder(
+        write: Boolean,
+        initialUri: String?,
+        prompt: String?,
+    ): Uri?
 }

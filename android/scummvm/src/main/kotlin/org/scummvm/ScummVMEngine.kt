@@ -43,14 +43,14 @@ class ScummVMEngine internal constructor(
     context: Context,
     private val configuration: ScummVMConfiguration,
 ) : ScummVMHostDelegate {
-
     private val appContext: Context = context.applicationContext
     private val paths = ScummVMPaths(appContext)
     private val gamePathResolver = ScummVMGamePathResolver(appContext.contentResolver, paths)
     private val mainHandler = Handler(Looper.getMainLooper())
-    private val preparationExecutor = Executors.newSingleThreadExecutor { task ->
-        Thread(task, "ScummVM-prepare")
-    }
+    private val preparationExecutor =
+        Executors.newSingleThreadExecutor { task ->
+            Thread(task, "ScummVM-prepare")
+        }
 
     private val _state = MutableStateFlow<ScummVMState>(ScummVMState.Idle)
 
@@ -129,9 +129,10 @@ class ScummVMEngine internal constructor(
     fun importGame(uri: Uri) {
         synchronized(importLock) {
             if (stopRequested) {
-                _state.value = ScummVMState.Failed(
-                    IllegalStateException("ScummVM has already been stopped"),
-                )
+                _state.value =
+                    ScummVMState.Failed(
+                        IllegalStateException("ScummVM has already been stopped"),
+                    )
                 return
             }
             if (host == null) {
@@ -151,10 +152,11 @@ class ScummVMEngine internal constructor(
     fun stop() {
         // Set before anything else: a preparation still in flight checks this
         // and will not hand the engine a thread it can no longer be stopped on.
-        val runningThread = synchronized(lifecycleLock) {
-            stopRequested = true
-            thread
-        }
+        val runningThread =
+            synchronized(lifecycleLock) {
+                stopRequested = true
+                thread
+            }
         preparationExecutor.shutdownNow()
 
         // Unblock a folder picker the engine thread might be sitting on.
@@ -182,12 +184,13 @@ class ScummVMEngine internal constructor(
         input = null
         hostView = null
 
-        val preparationStopped = try {
-            preparationExecutor.awaitTermination(SHUTDOWN_TIMEOUT_MS, TimeUnit.MILLISECONDS)
-        } catch (e: InterruptedException) {
-            Thread.currentThread().interrupt()
-            false
-        }
+        val preparationStopped =
+            try {
+                preparationExecutor.awaitTermination(SHUTDOWN_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+            } catch (e: InterruptedException) {
+                Thread.currentThread().interrupt()
+                false
+            }
         val nativeStopped = runningThread?.isAlive != true
         if (preparationStopped && nativeStopped && ownsEngineClaim) {
             thread = null
@@ -203,12 +206,13 @@ class ScummVMEngine internal constructor(
     internal fun attach(view: ScummVMSurfaceView) {
         if (host != null) return
         if (!engineClaimed.compareAndSet(false, true)) {
-            _state.value = ScummVMState.Failed(
-                IllegalStateException(
-                    "The ScummVM engine has already run in this process. It is a native " +
-                        "singleton and cannot be restarted; the app must be relaunched.",
-                ),
-            )
+            _state.value =
+                ScummVMState.Failed(
+                    IllegalStateException(
+                        "The ScummVM engine has already run in this process. It is a native " +
+                            "singleton and cannot be restarted; the app must be relaunched.",
+                    ),
+                )
             return
         }
         ownsEngineClaim = true
@@ -216,14 +220,15 @@ class ScummVMEngine internal constructor(
         hostView = view
         _state.value = ScummVMState.PreparingData
 
-        val newHost = ScummVMHost(appContext, paths, this, view.holder) { finishedThread, exitCode ->
-            mainHandler.post {
-                if (restartingThreads.remove(finishedThread)) return@post
-                if (thread === finishedThread) {
-                    _state.value = ScummVMState.Stopped(exitCode)
+        val newHost =
+            ScummVMHost(appContext, paths, this, view.holder) { finishedThread, exitCode ->
+                mainHandler.post {
+                    if (restartingThreads.remove(finishedThread)) return@post
+                    if (thread === finishedThread) {
+                        _state.value = ScummVMState.Stopped(exitCode)
+                    }
                 }
             }
-        }
         synchronized(importLock) {
             host = newHost
         }
@@ -239,28 +244,30 @@ class ScummVMEngine internal constructor(
         // Asset extraction is tens of megabytes of file copying on first run and
         // must not block the frame the surface was created on.
         preparationExecutor.execute { prepareAndLaunch(newHost) }
-        val queuedImports = synchronized(importLock) {
-            buildList {
-                while (pendingImports.isNotEmpty()) add(pendingImports.removeFirst())
+        val queuedImports =
+            synchronized(importLock) {
+                buildList {
+                    while (pendingImports.isNotEmpty()) add(pendingImports.removeFirst())
+                }
             }
-        }
         queuedImports.forEach(::enqueueImport)
     }
 
     private fun prepareAndLaunch(host: ScummVMHost) {
-        val prepared = try {
-            updateAudioDefaults()
-            val gameDirectory = gamePathResolver.resolve(configuration.gameUri)
-            paths.ensureConfiguration(gameDirectory ?: configuration.gamesDirectory)
-            PreparedLaunch(
-                assetsUpdated = ScummVMAssets.extractIfNeeded(appContext.assets, paths),
-                gameDirectory = gameDirectory,
-            )
-        } catch (e: Throwable) {
-            Log.e(TAG, "Failed to prepare ScummVM data", e)
-            mainHandler.post { _state.value = ScummVMState.Failed(e) }
-            return
-        }
+        val prepared =
+            try {
+                updateAudioDefaults()
+                val gameDirectory = gamePathResolver.resolve(configuration.gameUri)
+                paths.ensureConfiguration(gameDirectory ?: configuration.gamesDirectory)
+                PreparedLaunch(
+                    assetsUpdated = ScummVMAssets.extractIfNeeded(appContext.assets, paths),
+                    gameDirectory = gameDirectory,
+                )
+            } catch (e: Throwable) {
+                Log.e(TAG, "Failed to prepare ScummVM data", e)
+                mainHandler.post { _state.value = ScummVMState.Failed(e) }
+                return
+            }
 
         if (stopRequested) {
             // Torn down while unpacking; never start the engine at all.
@@ -272,26 +279,28 @@ class ScummVMEngine internal constructor(
         launchHost(host, buildArguments(prepared.gameDirectory))
     }
 
-    private fun buildArguments(gameDirectory: java.io.File?): Array<String> = buildList {
-        add("ScummVM")
-        if (gameDirectory != null) {
-            add("--path=${gameDirectory.absolutePath}")
-            add("--add")
-            add("--recursive")
-            add("--no-exit")
-        } else {
-            configuration.target?.let { add(it) }
-        }
-        addAll(configuration.extraArguments)
-    }.toTypedArray()
+    private fun buildArguments(gameDirectory: java.io.File?): Array<String> =
+        buildList {
+            add("ScummVM")
+            if (gameDirectory != null) {
+                add("--path=${gameDirectory.absolutePath}")
+                add("--add")
+                add("--recursive")
+                add("--no-exit")
+            } else {
+                configuration.target?.let { add(it) }
+            }
+            addAll(configuration.extraArguments)
+        }.toTypedArray()
 
     private fun enqueueImport(uri: Uri) {
         preparationExecutor.execute {
             try {
                 mainHandler.post { _state.value = ScummVMState.PreparingData }
-                val gameDirectory = requireNotNull(gamePathResolver.resolve(uri)) {
-                    "The archive does not contain any game files"
-                }
+                val gameDirectory =
+                    requireNotNull(gamePathResolver.resolve(uri)) {
+                        "The archive does not contain any game files"
+                    }
                 restartAndAddGames(gameDirectory)
             } catch (error: Throwable) {
                 if (error is InterruptedException) Thread.currentThread().interrupt()
@@ -322,7 +331,10 @@ class ScummVMEngine internal constructor(
         launchHost(currentHost, buildArguments(gameDirectory))
     }
 
-    private fun launchHost(host: ScummVMHost, arguments: Array<String>) {
+    private fun launchHost(
+        host: ScummVMHost,
+        arguments: Array<String>,
+    ) {
         synchronized(lifecycleLock) {
             if (stopRequested) return
             host.setArgs(arguments)
@@ -339,14 +351,17 @@ class ScummVMEngine internal constructor(
      * Ignored by AAudio on Oreo and later, but still read on older releases.
      */
     private fun updateAudioDefaults() {
-        val audioManager = appContext.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
-            ?: return
-        val sampleRate = audioManager
-            .getProperty(AudioManager.PROPERTY_OUTPUT_SAMPLE_RATE)
-            ?.toIntOrNull() ?: return
-        val framesPerBurst = audioManager
-            .getProperty(AudioManager.PROPERTY_OUTPUT_FRAMES_PER_BUFFER)
-            ?.toIntOrNull() ?: return
+        val audioManager =
+            appContext.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+                ?: return
+        val sampleRate =
+            audioManager
+                .getProperty(AudioManager.PROPERTY_OUTPUT_SAMPLE_RATE)
+                ?.toIntOrNull() ?: return
+        val framesPerBurst =
+            audioManager
+                .getProperty(AudioManager.PROPERTY_OUTPUT_FRAMES_PER_BUFFER)
+                ?.toIntOrNull() ?: return
         ScummVM.setDefaultAudioValues(sampleRate, framesPerBurst)
     }
 
@@ -380,8 +395,9 @@ class ScummVMEngine internal constructor(
 
     override fun onVirtualKeyboardRequested(show: Boolean) {
         val view = hostView ?: return
-        val imm = appContext.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
-            ?: return
+        val imm =
+            appContext.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+                ?: return
         if (show) {
             view.requestFocus()
             imm.showSoftInput(view, InputMethodManager.SHOW_IMPLICIT)
@@ -408,7 +424,11 @@ class ScummVMEngine internal constructor(
         activity.requestedOrientation = orientation
     }
 
-    override fun pickFolder(write: Boolean, initialUri: String?, prompt: String?): Uri? {
+    override fun pickFolder(
+        write: Boolean,
+        initialUri: String?,
+        prompt: String?,
+    ): Uri? {
         val launcher = folderPickerLauncher ?: return null
         pickedFolders.clear()
         val initial = initialUri?.takeIf(String::isNotEmpty)?.let(Uri::parse)
@@ -437,8 +457,9 @@ class ScummVMEngine internal constructor(
     )
 }
 
-internal tailrec fun Context.findActivity(): Activity? = when (this) {
-    is Activity -> this
-    is ContextWrapper -> baseContext.findActivity()
-    else -> null
-}
+internal tailrec fun Context.findActivity(): Activity? =
+    when (this) {
+        is Activity -> this
+        is ContextWrapper -> baseContext.findActivity()
+        else -> null
+    }

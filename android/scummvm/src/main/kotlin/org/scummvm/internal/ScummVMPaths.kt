@@ -10,7 +10,9 @@ import java.io.File
  * `ScummVMActivity` settled on: external storage is neither reliably available
  * nor writable without user interaction on modern Android.
  */
-internal class ScummVMPaths(context: Context) {
+internal class ScummVMPaths(
+    context: Context,
+) {
     val baseDir: File = context.filesDir
 
     /** Where the AAR assets get unpacked; handed to the engine as a sys archive. */
@@ -34,10 +36,11 @@ internal class ScummVMPaths(context: Context) {
     fun ensureConfiguration(gamesDirectory: File?) {
         if (configFile.exists()) return
 
-        val lines = buildList {
-            add("[scummvm]")
-            gamesDirectory?.let { add("browser_lastpath=${it.absolutePath}") }
-        }
+        val lines =
+            buildList {
+                add("[scummvm]")
+                gamesDirectory?.let { add("browser_lastpath=${it.absolutePath}") }
+            }
         configFile.writeText(lines.joinToString("\n", postfix = "\n"))
     }
 }

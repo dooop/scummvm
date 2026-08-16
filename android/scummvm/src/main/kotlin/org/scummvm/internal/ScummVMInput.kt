@@ -28,9 +28,10 @@ import org.scummvm.scummvm.ScummVM
 internal class ScummVMInput(
     context: Context,
     private val engine: ScummVM,
-) : View.OnTouchListener, View.OnKeyListener, GestureDetector.OnGestureListener,
+) : View.OnTouchListener,
+    View.OnKeyListener,
+    GestureDetector.OnGestureListener,
     GestureDetector.OnDoubleTapListener {
-
     // Event type ids shared with backends/platform/android/events.cpp.
     private companion object {
         const val JE_SYS_KEY = 0
@@ -63,9 +64,10 @@ internal class ScummVMInput(
         const val JOYSTICK_AXIS_RTRIGGER_BF = 0x80
     }
 
-    private val gestureDetector = GestureDetector(context, this).also {
-        it.setOnDoubleTapListener(this)
-    }
+    private val gestureDetector =
+        GestureDetector(context, this).also {
+            it.setOnDoubleTapListener(this)
+        }
     private val isTelevision = context.packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK)
 
     /** Set while a two-or-three finger gesture owns the stream of events. */
@@ -95,7 +97,10 @@ internal class ScummVMInput(
     // Touch
     // ------------------------------------------------------------------
 
-    override fun onTouch(view: View, event: MotionEvent): Boolean {
+    override fun onTouch(
+        view: View,
+        event: MotionEvent,
+    ): Boolean {
         if (touchMode == ScummVMTouchMode.Gamepad) {
             forwardGamepadTouch(event)
             return true
@@ -235,7 +240,12 @@ internal class ScummVMInput(
 
     override fun onLongPress(e: MotionEvent) = Unit // Interferes with drag & drop.
 
-    override fun onFling(e1: MotionEvent?, e2: MotionEvent, velocityX: Float, velocityY: Float) = true
+    override fun onFling(
+        e1: MotionEvent?,
+        e2: MotionEvent,
+        velocityX: Float,
+        velocityY: Float,
+    ) = true
 
     // ------------------------------------------------------------------
     // GestureDetector.OnDoubleTapListener
@@ -258,65 +268,71 @@ internal class ScummVMInput(
     // Keys
     // ------------------------------------------------------------------
 
-    override fun onKey(view: View, keyCode: Int, event: KeyEvent): Boolean {
+    override fun onKey(
+        view: View,
+        keyCode: Int,
+        event: KeyEvent,
+    ): Boolean {
         // Undocumented code emitted around ACTION_HOVER_ENTER/EXIT.
         if (keyCode == 238) return false
 
-        val unicodeChar = if (event.deviceId != 0) {
-            KeyCharacterMap.load(event.deviceId).get(event.keyCode, event.metaState)
-        } else {
-            event.unicodeChar
-        }
+        val unicodeChar =
+            if (event.deviceId != 0) {
+                KeyCharacterMap.load(event.deviceId).get(event.keyCode, event.metaState)
+            } else {
+                event.unicodeChar
+            }
 
-        val type = when (keyCode) {
-            KeyEvent.KEYCODE_DPAD_UP,
-            KeyEvent.KEYCODE_DPAD_DOWN,
-            KeyEvent.KEYCODE_DPAD_LEFT,
-            KeyEvent.KEYCODE_DPAD_RIGHT,
-            KeyEvent.KEYCODE_DPAD_CENTER,
-            ->
-                if (event.flags and KeyEvent.FLAG_SOFT_KEYBOARD == KeyEvent.FLAG_SOFT_KEYBOARD) {
-                    JE_KEY
-                } else if (
-                    isTelevision &&
-                    !event.isFromSource(InputDevice.SOURCE_GAMEPAD) &&
-                    !event.isFromSource(InputDevice.SOURCE_JOYSTICK)
-                ) {
-                    // A basic TV remote has no analog pointer. The native
-                    // Android backend's D-pad path moves the mouse cursor and
-                    // translates center/select into a left click.
-                    JE_DPAD
-                } else {
-                    // Physical gamepads go through ScummVM's keymapper.
-                    JE_GAMEPAD
-                }
+        val type =
+            when (keyCode) {
+                KeyEvent.KEYCODE_DPAD_UP,
+                KeyEvent.KEYCODE_DPAD_DOWN,
+                KeyEvent.KEYCODE_DPAD_LEFT,
+                KeyEvent.KEYCODE_DPAD_RIGHT,
+                KeyEvent.KEYCODE_DPAD_CENTER,
+                ->
+                    if (event.flags and KeyEvent.FLAG_SOFT_KEYBOARD == KeyEvent.FLAG_SOFT_KEYBOARD) {
+                        JE_KEY
+                    } else if (
+                        isTelevision &&
+                        !event.isFromSource(InputDevice.SOURCE_GAMEPAD) &&
+                        !event.isFromSource(InputDevice.SOURCE_JOYSTICK)
+                    ) {
+                        // A basic TV remote has no analog pointer. The native
+                        // Android backend's D-pad path moves the mouse cursor and
+                        // translates center/select into a left click.
+                        JE_DPAD
+                    } else {
+                        // Physical gamepads go through ScummVM's keymapper.
+                        JE_GAMEPAD
+                    }
 
-            KeyEvent.KEYCODE_BUTTON_A,
-            KeyEvent.KEYCODE_BUTTON_B,
-            KeyEvent.KEYCODE_BUTTON_C,
-            KeyEvent.KEYCODE_BUTTON_X,
-            KeyEvent.KEYCODE_BUTTON_Y,
-            KeyEvent.KEYCODE_BUTTON_Z,
-            KeyEvent.KEYCODE_BUTTON_L1,
-            KeyEvent.KEYCODE_BUTTON_R1,
-            KeyEvent.KEYCODE_BUTTON_L2,
-            KeyEvent.KEYCODE_BUTTON_R2,
-            KeyEvent.KEYCODE_BUTTON_THUMBL,
-            KeyEvent.KEYCODE_BUTTON_THUMBR,
-            KeyEvent.KEYCODE_BUTTON_START,
-            KeyEvent.KEYCODE_BUTTON_SELECT,
-            KeyEvent.KEYCODE_BUTTON_MODE,
-            -> JE_GAMEPAD
+                KeyEvent.KEYCODE_BUTTON_A,
+                KeyEvent.KEYCODE_BUTTON_B,
+                KeyEvent.KEYCODE_BUTTON_C,
+                KeyEvent.KEYCODE_BUTTON_X,
+                KeyEvent.KEYCODE_BUTTON_Y,
+                KeyEvent.KEYCODE_BUTTON_Z,
+                KeyEvent.KEYCODE_BUTTON_L1,
+                KeyEvent.KEYCODE_BUTTON_R1,
+                KeyEvent.KEYCODE_BUTTON_L2,
+                KeyEvent.KEYCODE_BUTTON_R2,
+                KeyEvent.KEYCODE_BUTTON_THUMBL,
+                KeyEvent.KEYCODE_BUTTON_THUMBR,
+                KeyEvent.KEYCODE_BUTTON_START,
+                KeyEvent.KEYCODE_BUTTON_SELECT,
+                KeyEvent.KEYCODE_BUTTON_MODE,
+                -> JE_GAMEPAD
 
-            // Reported with SOURCE_KEYBOARD by some sticks, so classify by code.
-            KeyEvent.KEYCODE_BUTTON_1,
-            KeyEvent.KEYCODE_BUTTON_2,
-            KeyEvent.KEYCODE_BUTTON_3,
-            KeyEvent.KEYCODE_BUTTON_4,
-            -> JE_JOYSTICK
+                // Reported with SOURCE_KEYBOARD by some sticks, so classify by code.
+                KeyEvent.KEYCODE_BUTTON_1,
+                KeyEvent.KEYCODE_BUTTON_2,
+                KeyEvent.KEYCODE_BUTTON_3,
+                KeyEvent.KEYCODE_BUTTON_4,
+                -> JE_JOYSTICK
 
-            else -> if (event.isSystem) JE_SYS_KEY else JE_KEY
-        }
+                else -> if (event.isSystem) JE_SYS_KEY else JE_KEY
+            }
 
         engine.pushEvent(
             type,
@@ -338,18 +354,19 @@ internal class ScummVMInput(
      * Axes forwarded to the engine, in the bit order `events.cpp` expects:
      * left stick, hat, right stick, triggers.
      */
-    private val joystickAxes = listOf(
-        Triple(MotionEvent.AXIS_X, JOYSTICK_AXIS_X_BF, 1.0f),
-        Triple(MotionEvent.AXIS_Y, JOYSTICK_AXIS_Y_BF, 1.0f),
-        // The hat is digital. At full scale it reads as a complete press and the
-        // keymapper swallows it; upstream scales to 2/3 for the same reason.
-        Triple(MotionEvent.AXIS_HAT_X, JOYSTICK_AXIS_HAT_X_BF, JOYSTICK_AXIS_HAT_SCALE),
-        Triple(MotionEvent.AXIS_HAT_Y, JOYSTICK_AXIS_HAT_Y_BF, JOYSTICK_AXIS_HAT_SCALE),
-        Triple(MotionEvent.AXIS_Z, JOYSTICK_AXIS_Z_BF, 1.0f),
-        Triple(MotionEvent.AXIS_RZ, JOYSTICK_AXIS_RZ_BF, 1.0f),
-        Triple(MotionEvent.AXIS_LTRIGGER, JOYSTICK_AXIS_LTRIGGER_BF, 1.0f),
-        Triple(MotionEvent.AXIS_RTRIGGER, JOYSTICK_AXIS_RTRIGGER_BF, 1.0f),
-    )
+    private val joystickAxes =
+        listOf(
+            Triple(MotionEvent.AXIS_X, JOYSTICK_AXIS_X_BF, 1.0f),
+            Triple(MotionEvent.AXIS_Y, JOYSTICK_AXIS_Y_BF, 1.0f),
+            // The hat is digital. At full scale it reads as a complete press and the
+            // keymapper swallows it; upstream scales to 2/3 for the same reason.
+            Triple(MotionEvent.AXIS_HAT_X, JOYSTICK_AXIS_HAT_X_BF, JOYSTICK_AXIS_HAT_SCALE),
+            Triple(MotionEvent.AXIS_HAT_Y, JOYSTICK_AXIS_HAT_Y_BF, JOYSTICK_AXIS_HAT_SCALE),
+            Triple(MotionEvent.AXIS_Z, JOYSTICK_AXIS_Z_BF, 1.0f),
+            Triple(MotionEvent.AXIS_RZ, JOYSTICK_AXIS_RZ_BF, 1.0f),
+            Triple(MotionEvent.AXIS_LTRIGGER, JOYSTICK_AXIS_LTRIGGER_BF, 1.0f),
+            Triple(MotionEvent.AXIS_RTRIGGER, JOYSTICK_AXIS_RTRIGGER_BF, 1.0f),
+        )
 
     fun onGenericMotion(event: MotionEvent): Boolean {
         if (event.source and InputDevice.SOURCE_JOYSTICK != InputDevice.SOURCE_JOYSTICK) {
@@ -378,7 +395,11 @@ internal class ScummVMInput(
      * Reads an axis with the device's own dead zone applied -- a stick at rest
      * rarely reports exactly 0, and without this the cursor drifts.
      */
-    private fun centeredAxisValue(event: MotionEvent, device: InputDevice?, axisId: Int): Float {
+    private fun centeredAxisValue(
+        event: MotionEvent,
+        device: InputDevice?,
+        axisId: Int,
+    ): Float {
         val range = device?.getMotionRange(axisId, event.source) ?: return 0.0f
         val value = event.getAxisValue(range.axis, event.actionIndex)
         return if (kotlin.math.abs(value) > range.flat) value else 0.0f

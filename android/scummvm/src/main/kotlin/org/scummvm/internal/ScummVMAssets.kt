@@ -26,16 +26,20 @@ internal object ScummVMAssets {
      * @return true when files were (re-)extracted. The engine needs to know:
      *   it re-reads bundled data that it would otherwise cache.
      */
-    fun extractIfNeeded(assetManager: AssetManager, paths: ScummVMPaths): Boolean {
-        val bundled = try {
-            assetManager.open(MANIFEST).use { it.readBytes() }
-        } catch (e: IOException) {
-            throw IOException(
-                "$MANIFEST is missing from the library assets -- the AAR was built without " +
-                    "the syncScummVMAssets task output.",
-                e,
-            )
-        }
+    fun extractIfNeeded(
+        assetManager: AssetManager,
+        paths: ScummVMPaths,
+    ): Boolean {
+        val bundled =
+            try {
+                assetManager.open(MANIFEST).use { it.readBytes() }
+            } catch (e: IOException) {
+                throw IOException(
+                    "$MANIFEST is missing from the library assets -- the AAR was built without " +
+                        "the syncScummVMAssets task output.",
+                    e,
+                )
+            }
 
         val installed = File(paths.baseDir, MANIFEST)
         if (installed.isFile && installed.readBytes().contentEquals(bundled)) {
@@ -60,7 +64,11 @@ internal object ScummVMAssets {
      *   way to tell a file from a directory, so -- as upstream does -- an empty
      *   listing is taken to mean "this is a file".
      */
-    private fun extract(assetManager: AssetManager, assetPath: String, target: File): Boolean {
+    private fun extract(
+        assetManager: AssetManager,
+        assetPath: String,
+        target: File,
+    ): Boolean {
         val entries = assetManager.list(assetPath) ?: emptyArray()
         if (entries.isEmpty()) {
             if (target.isDirectory) target.deleteRecursively()

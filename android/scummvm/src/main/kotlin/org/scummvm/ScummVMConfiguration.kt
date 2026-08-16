@@ -18,17 +18,14 @@ data class ScummVMConfiguration(
      * `null` opens ScummVM's own launcher UI.
      */
     val target: String? = null,
-
     /**
      * Directory the launcher's "Add Game" browser opens at. Only applied when
      * `scummvm.ini` is created for the first time, so a user's own choice is
      * never overwritten.
      */
     val gamesDirectory: File? = null,
-
     /** Extra command line arguments appended after the ones derived above. */
     val extraArguments: List<String> = emptyList(),
-
     /**
      * A `.zip` or `.scummvm` document selected through Android's document
      * picker. It is extracted into the app's private ScummVM directory before
@@ -54,17 +51,23 @@ sealed interface ScummVMState {
     data object Running : ScummVMState
 
     /** The engine's `main()` returned without a pending managed import. */
-    data class Stopped(val exitCode: Int) : ScummVMState
+    data class Stopped(
+        val exitCode: Int,
+    ) : ScummVMState
 
     /** Start-up failed before or during the engine run. */
-    data class Failed(val cause: Throwable) : ScummVMState
+    data class Failed(
+        val cause: Throwable,
+    ) : ScummVMState
 }
 
 /**
  * How touch input is translated for the engine. Mirrors the `TOUCH_MODE_*`
  * constants the native backend expects.
  */
-enum class ScummVMTouchMode(internal val nativeValue: Int) {
+enum class ScummVMTouchMode(
+    internal val nativeValue: Int,
+) {
     /** Relative cursor movement, tap to click. The ScummVM default. */
     Touchpad(0),
 
@@ -76,7 +79,6 @@ enum class ScummVMTouchMode(internal val nativeValue: Int) {
     ;
 
     internal companion object {
-        fun fromNative(value: Int): ScummVMTouchMode =
-            entries.firstOrNull { it.nativeValue == value } ?: Touchpad
+        fun fromNative(value: Int): ScummVMTouchMode = entries.firstOrNull { it.nativeValue == value } ?: Touchpad
     }
 }

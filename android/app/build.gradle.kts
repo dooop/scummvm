@@ -9,8 +9,14 @@ ktlint {
     outputToConsole.set(true)
 }
 
-val releaseAar = providers.gradleProperty("scummvm.releaseAar")
-    .orElse(layout.projectDirectory.file("libs/scummvm-release.aar").asFile.absolutePath)
+val releaseAar =
+    providers
+        .gradleProperty("scummvm.releaseAar")
+        .orElse(
+            layout.projectDirectory
+                .file("libs/scummvm-release.aar")
+                .asFile.absolutePath,
+        )
 
 android {
     // Must differ from the consumed AAR's namespace; AGP rejects duplicate
@@ -76,18 +82,19 @@ dependencies {
     implementation(libs.androidx.annotation)
 }
 
-val verifyReleaseAar = tasks.register("verifyReleaseAar") {
-    group = "verification"
-    description = "Checks that the prebuilt ScummVM AAR for release builds exists."
-    doLast {
-        val aar = file(releaseAar.get())
-        require(aar.isFile) {
-            "Release builds require a prebuilt ScummVM AAR at ${aar.path}.\n" +
-                "Copy an uploaded release artifact to app/libs/scummvm-release.aar or pass " +
-                "-Pscummvm.releaseAar=/absolute/path/to/scummvm-release.aar."
+val verifyReleaseAar =
+    tasks.register("verifyReleaseAar") {
+        group = "verification"
+        description = "Checks that the prebuilt ScummVM AAR for release builds exists."
+        doLast {
+            val aar = file(releaseAar.get())
+            require(aar.isFile) {
+                "Release builds require a prebuilt ScummVM AAR at ${aar.path}.\n" +
+                    "Copy an uploaded release artifact to app/libs/scummvm-release.aar or pass " +
+                    "-Pscummvm.releaseAar=/absolute/path/to/scummvm-release.aar."
+            }
         }
     }
-}
 
 tasks.configureEach {
     if (name == "preReleaseBuild") dependsOn(verifyReleaseAar)

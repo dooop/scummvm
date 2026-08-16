@@ -28,14 +28,17 @@ internal class ScummVMGamePathResolver(
             "Could not create ${paths.importedGamesDir.path}"
         }
 
-        val stem = displayName.substringBeforeLast('.', displayName)
-            .replace(Regex("[^A-Za-z0-9._-]"), "-")
-            .trim('-', '.')
-            .ifEmpty { "game" }
-        val destination = File(
-            paths.importedGamesDir,
-            "$stem-${fnv1a64(uri.toString()).toString(16)}",
-        )
+        val stem =
+            displayName
+                .substringBeforeLast('.', displayName)
+                .replace(Regex("[^A-Za-z0-9._-]"), "-")
+                .trim('-', '.')
+                .ifEmpty { "game" }
+        val destination =
+            File(
+                paths.importedGamesDir,
+                "$stem-${fnv1a64(uri.toString()).toString(16)}",
+            )
 
         preferredGameDirectory(destination)?.let { return it }
 
@@ -63,7 +66,10 @@ internal class ScummVMGamePathResolver(
         }
     }
 
-    private fun extract(archive: ZipInputStream, destination: File) {
+    private fun extract(
+        archive: ZipInputStream,
+        destination: File,
+    ) {
         val rootPath = destination.canonicalPath + File.separator
         val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
         var entryCount = 0
@@ -74,7 +80,11 @@ internal class ScummVMGamePathResolver(
             entryCount += 1
             require(entryCount <= MAX_ENTRY_COUNT) { "Archive contains too many entries" }
 
-            val components = entry.name.replace('\\', '/').split('/').filter(String::isNotEmpty)
+            val components =
+                entry.name
+                    .replace('\\', '/')
+                    .split('/')
+                    .filter(String::isNotEmpty)
             if (components.isEmpty() || components.first().equals("__MACOSX", ignoreCase = true)) {
                 archive.closeEntry()
                 continue
@@ -107,25 +117,29 @@ internal class ScummVMGamePathResolver(
         if (!root.isDirectory) return null
         var current = root
         while (true) {
-            val contents = current.listFiles()
-                ?.filterNot { it.name.equals("__MACOSX", ignoreCase = true) || it.isHidden }
-                .orEmpty()
+            val contents =
+                current
+                    .listFiles()
+                    ?.filterNot { it.name.equals("__MACOSX", ignoreCase = true) || it.isHidden }
+                    .orEmpty()
             if (contents.isEmpty()) return null
             if (contents.size != 1 || !contents.single().isDirectory) return current
             current = contents.single()
         }
     }
 
-    private fun queryDisplayName(uri: Uri): String? = contentResolver.query(
-        uri,
-        arrayOf(OpenableColumns.DISPLAY_NAME),
-        null,
-        null,
-        null,
-    )?.use { cursor: Cursor ->
-        if (!cursor.moveToFirst()) return@use null
-        cursor.getString(cursor.getColumnIndexOrThrow(OpenableColumns.DISPLAY_NAME))
-    }
+    private fun queryDisplayName(uri: Uri): String? =
+        contentResolver
+            .query(
+                uri,
+                arrayOf(OpenableColumns.DISPLAY_NAME),
+                null,
+                null,
+                null,
+            )?.use { cursor: Cursor ->
+                if (!cursor.moveToFirst()) return@use null
+                cursor.getString(cursor.getColumnIndexOrThrow(OpenableColumns.DISPLAY_NAME))
+            }
 
     private fun fnv1a64(value: String): ULong {
         var hash = 0xcbf29ce484222325uL

@@ -48,9 +48,10 @@ class MainActivity : ComponentActivity() {
             }
 
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black),
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .background(Color.Black),
             ) {
                 ScummVM(
                     modifier = Modifier.fillMaxSize(),
@@ -63,10 +64,11 @@ class MainActivity : ComponentActivity() {
                     ScummVMState.PreparingData,
                     -> Status("Preparing ScummVM (${BuildConfig.ENGINE_SOURCE})...")
 
-                    is ScummVMState.Failed -> Status(
-                        text = current.cause.message ?: "ScummVM failed to start",
-                        color = Color(0xFFFF8A80),
-                    )
+                    is ScummVMState.Failed ->
+                        Status(
+                            text = current.cause.message ?: "ScummVM failed to start",
+                            color = Color(0xFFFF8A80),
+                        )
 
                     ScummVMState.Running,
                     is ScummVMState.Stopped,
@@ -90,11 +92,12 @@ class MainActivity : ComponentActivity() {
 }
 
 @Suppress("DEPRECATION")
-private fun Intent?.gameDocumentUri(): Uri? = when (this?.action) {
-    Intent.ACTION_VIEW -> data
-    Intent.ACTION_SEND -> getParcelableExtra(Intent.EXTRA_STREAM) as? Uri
-    else -> null
-}
+private fun Intent?.gameDocumentUri(): Uri? =
+    when (this?.action) {
+        Intent.ACTION_VIEW -> data
+        Intent.ACTION_SEND -> getParcelableExtra(Intent.EXTRA_STREAM) as? Uri
+        else -> null
+    }
 
 @androidx.compose.runtime.Composable
 private fun androidx.compose.foundation.layout.BoxScope.Status(
@@ -103,10 +106,13 @@ private fun androidx.compose.foundation.layout.BoxScope.Status(
 ) {
     BasicText(
         text = text,
-        modifier = Modifier
-            .align(Alignment.TopStart)
-            .background(Color(0xAA000000))
-            .padding(12.dp),
-        style = androidx.compose.ui.text.TextStyle(color = color),
+        modifier =
+            Modifier
+                .align(Alignment.TopStart)
+                .background(Color(0xAA000000))
+                .padding(12.dp),
+        style =
+            androidx.compose.ui.text
+                .TextStyle(color = color),
     )
 }

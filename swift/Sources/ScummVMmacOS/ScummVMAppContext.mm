@@ -332,11 +332,11 @@ static void SCVMStartWrapperAutosaveTimer() {
     [[NSRunLoop mainRunLoop] addTimer:g_scummVMWrapperAutosaveTimer forMode:NSRunLoopCommonModes];
 }
 
-// After scummvm_main returns, check whether the timer already persisted the save_slot hint.
-// If it did, the hint is already flushed to disk and no further action is needed.
-// If it didn't, we cannot safely write to ConfMan because the auto-detected game domain may
-// have been removed during the engine's normal cleanup.
-static void SCVMPersistSaveSlotHintAfterEngineExit(NSString *launchGamePath) {
+// After scummvm_main returns, the timer has either already persisted the save_slot hint
+// (nothing further to do) or the auto-detected game domain may have been removed during
+// the engine's normal cleanup (in which case writing to ConfMan here would be unsafe).
+// Either way, just reset the per-run tracking state so the next launch starts clean.
+static void SCVMResetAutosaveHintTrackingAfterEngineExit() {
     g_scummVMLastKnownActiveTarget = nil;
     g_scummVMTimerDidPersistHint = NO;
 }
@@ -431,7 +431,7 @@ static void SCVMPersistSaveSlotHintAfterEngineExit(NSString *launchGamePath) {
         scummvm_main(argc, argv);
         SCVMStopWrapperAutosaveTimer();
 
-        SCVMPersistSaveSlotHintAfterEngineExit(launchGamePath);
+        SCVMResetAutosaveHintTrackingAfterEngineExit();
 
         for (int i = 0; i < argc; i++) {
             free(argv[i]);

@@ -24,13 +24,17 @@ final class ScummVMViewModel: ObservableObject {
   private var shouldRunEngine = false
   private var isEngineRunning = false
   private var startRequestToken: UInt64 = 0
-  #if os(iOS)
+  #if os(iOS) || os(tvOS)
     private var attachedHostViewCount = 0
     private var lastObservedScenePhase: ScenePhase = .active
   #endif
 
-  #if os(iOS)
-    static let sharedIOSHost = ScummVMViewModel(game: nil)
+  // iOS and tvOS share the same process-wide engine singleton (tvOS compiles the
+  // same ios7 backend as a platform slice of ScummVMiOS), so both need a shared
+  // view model to track host-view attach count across recreated `ScummVM()` views.
+  // macOS instead runs one `ScummVM()` view for the app's whole lifetime.
+  #if os(iOS) || os(tvOS)
+    static let sharedHost = ScummVMViewModel(game: nil)
   #endif
 
   init(game: URL?) {
@@ -57,7 +61,7 @@ final class ScummVMViewModel: ObservableObject {
     beginStartResolution()
   }
 
-  #if os(iOS)
+  #if os(iOS) || os(tvOS)
     func hostAttach(game: URL?, scenePhase: ScenePhase) {
       attachedHostViewCount += 1
       lastObservedScenePhase = scenePhase
@@ -132,7 +136,7 @@ final class ScummVMViewModel: ObservableObject {
     startTask = nil
   }
 
-  #if os(iOS)
+  #if os(iOS) || os(tvOS)
     private func applyHostLifecyclePolicy() {
       guard attachedHostViewCount > 0 else {
         stop()

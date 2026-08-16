@@ -18,8 +18,8 @@ public struct ScummVM: View {
 
   public init(game: URL? = nil) {
     self.game = game
-    #if os(iOS)
-      _viewModel = StateObject(wrappedValue: ScummVMViewModel.sharedIOSHost)
+    #if os(iOS) || os(tvOS)
+      _viewModel = StateObject(wrappedValue: ScummVMViewModel.sharedHost)
     #else
       _viewModel = StateObject(wrappedValue: ScummVMViewModel(game: game))
     #endif
@@ -42,7 +42,7 @@ public struct ScummVM: View {
       #endif
       .onAppear {
         isVisible = true
-        #if os(iOS)
+        #if os(iOS) || os(tvOS)
           viewModel.hostAttach(game: game, scenePhase: scenePhase)
         #else
           viewModel.start()
@@ -50,7 +50,7 @@ public struct ScummVM: View {
       }
       .onDisappear {
         isVisible = false
-        #if os(iOS)
+        #if os(iOS) || os(tvOS)
           viewModel.hostDetach(scenePhase: scenePhase)
         #else
           viewModel.stop()
@@ -61,7 +61,7 @@ public struct ScummVM: View {
           return
         }
 
-        #if os(iOS)
+        #if os(iOS) || os(tvOS)
           viewModel.hostScenePhaseChanged(newScenePhase)
         #else
           switch newScenePhase {

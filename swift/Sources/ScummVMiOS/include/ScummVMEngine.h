@@ -31,11 +31,7 @@ FOUNDATION_EXPORT ScummVMEngine *ScummVMEngineSharedInstance(void);
 - (void)startWithGamePath:(nullable NSString *)gamePath NS_SWIFT_NAME(start(gamePath:));
 - (void)stop;
 
-#if TARGET_OS_IOS || TARGET_OS_TV
 - (nullable UIViewController *)ui;
-#elif TARGET_OS_MAC
-- (nullable NSWindow *)ui;
-#endif
 
 @end
 

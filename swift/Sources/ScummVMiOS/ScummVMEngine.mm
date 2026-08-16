@@ -36,15 +36,9 @@ ScummVMEngine *ScummVMEngineSharedInstance(void) {
     [[ScummVMAppContext sharedContext] stop];
 }
 
-#if TARGET_OS_IOS || TARGET_OS_TV
 - (UIViewController *)ui {
     [[ScummVMAppContext sharedContext] setupIfNeeded];
     return [ScummVMAppContext sharedContext].viewController;
 }
-#elif TARGET_OS_MAC
-- (NSWindow *)ui {
-    return [ScummVMAppContext sharedContext].window;
-}
-#endif
 
 @end

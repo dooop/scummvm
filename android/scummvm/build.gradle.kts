@@ -8,6 +8,12 @@ plugins {
     // AGP 9 has Kotlin support built in (see android.enableKotlin below); the
     // standalone org.jetbrains.kotlin.android plugin must not be applied.
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.ktlint)
+}
+
+ktlint {
+    android.set(true)
+    outputToConsole.set(true)
 }
 
 // ---------------------------------------------------------------------------

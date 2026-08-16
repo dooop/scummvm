@@ -1141,7 +1141,7 @@ let engineTargets: [Target] =
   ]
 
 let package = Package(
-  name: "scummvm",
+  name: "swift-scummvm",
   platforms: [
     .iOS(.v17), .tvOS(.v17), .macOS(.v15),
   ],

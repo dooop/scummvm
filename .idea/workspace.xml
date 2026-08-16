@@ -4,21 +4,7 @@
     <option name="autoReloadType" value="NONE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="9c9825e8-041c-420b-9f96-a14b9ec856ab" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.editorconfig" beforeDir="false" afterPath="$PROJECT_DIR$/.editorconfig" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android/app/build.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/build.gradle.kts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android/app/src/main/kotlin/org/scummvm/MainActivity.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/kotlin/org/scummvm/MainActivity.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android/scummvm/build.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/android/scummvm/build.gradle.kts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android/scummvm/src/main/kotlin/org/scummvm/ScummVMConfiguration.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android/scummvm/src/main/kotlin/org/scummvm/ScummVMConfiguration.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android/scummvm/src/main/kotlin/org/scummvm/ScummVMEngine.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android/scummvm/src/main/kotlin/org/scummvm/ScummVMEngine.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android/scummvm/src/main/kotlin/org/scummvm/ScummVMView.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android/scummvm/src/main/kotlin/org/scummvm/ScummVMView.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android/scummvm/src/main/kotlin/org/scummvm/internal/ScummVMAssets.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android/scummvm/src/main/kotlin/org/scummvm/internal/ScummVMAssets.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android/scummvm/src/main/kotlin/org/scummvm/internal/ScummVMGamePathResolver.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android/scummvm/src/main/kotlin/org/scummvm/internal/ScummVMGamePathResolver.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android/scummvm/src/main/kotlin/org/scummvm/internal/ScummVMInput.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android/scummvm/src/main/kotlin/org/scummvm/internal/ScummVMInput.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android/scummvm/src/main/kotlin/org/scummvm/internal/ScummVMPaths.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android/scummvm/src/main/kotlin/org/scummvm/internal/ScummVMPaths.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/android/scummvm/src/main/kotlin/org/scummvm/scummvm/ScummVMHost.kt" beforeDir="false" afterPath="$PROJECT_DIR$/android/scummvm/src/main/kotlin/org/scummvm/scummvm/ScummVMHost.kt" afterDir="false" />
-    </list>
+    <list default="true" id="9c9825e8-041c-420b-9f96-a14b9ec856ab" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />

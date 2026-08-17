@@ -18,6 +18,14 @@ val releaseAar =
                 .asFile.absolutePath,
         )
 
+// Version of io.github.dooop:scummvm resolved from GitHub Packages by the
+// "maven" flavor. Defaults to the latest published release; override to test
+// against a specific tag, e.g. -Pscummvm.mavenVersion=0.7.0.
+val mavenVersion =
+    providers
+        .gradleProperty("scummvm.mavenVersion")
+        .getOrElse("0.7.0")
+
 val scummvmAbis =
     (providers.gradleProperty("scummvm.abis").orNull ?: "arm64-v8a,x86_64")
         .split(",")
@@ -50,15 +58,31 @@ android {
         buildConfig = true
     }
 
+    // Which ScummVM engine artifact the app links against. Independent of the
+    // debug/release build type below, so all four combinations build:
+    // localDebug, localRelease, mavenDebug, mavenRelease.
+    flavorDimensions += "engineSource"
+    productFlavors {
+        create("local") {
+            dimension = "engineSource"
+            // debug uses the :scummvm project directly; release uses a flat
+            // prebuilt AAR from disk (see releaseAar / verifyReleaseAar below).
+            buildConfigField("String", "ENGINE_SOURCE", "\"local\"")
+        }
+        create("maven") {
+            dimension = "engineSource"
+            versionNameSuffix = "-maven"
+            buildConfigField("String", "ENGINE_SOURCE", "\"maven:io.github.dooop:scummvm:$mavenVersion\"")
+        }
+    }
+
     buildTypes {
         debug {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
-            buildConfigField("String", "ENGINE_SOURCE", "\"local project\"")
         }
         release {
             isMinifyEnabled = false
-            buildConfigField("String", "ENGINE_SOURCE", "\"prebuilt AAR\"")
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
@@ -78,8 +102,7 @@ android {
 }
 
 dependencies {
-    debugImplementation(project(":scummvm"))
-    releaseImplementation(files(releaseAar))
+    "mavenImplementation"("io.github.dooop:scummvm:$mavenVersion")
 
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)
@@ -91,14 +114,24 @@ dependencies {
     implementation(libs.androidx.annotation)
 }
 
+// The flavor x build type configurations below (e.g. localDebugImplementation)
+// only exist once AGP has finished computing the variant list, which happens
+// after this script's dependencies {} block runs.
+afterEvaluate {
+    dependencies {
+        "localDebugImplementation"(project(":scummvm"))
+        "localReleaseImplementation"(files(releaseAar))
+    }
+}
+
 val verifyReleaseAar =
     tasks.register("verifyReleaseAar") {
         group = "verification"
-        description = "Checks that the prebuilt ScummVM AAR for release builds exists."
+        description = "Checks that the prebuilt ScummVM AAR for the local-flavor release build exists."
         doLast {
             val aar = file(releaseAar.get())
             require(aar.isFile) {
-                "Release builds require a prebuilt ScummVM AAR at ${aar.path}.\n" +
+                "The local-flavor release build requires a prebuilt ScummVM AAR at ${aar.path}.\n" +
                     "Copy an uploaded release artifact to app/libs/scummvm-release.aar or pass " +
                     "-Pscummvm.releaseAar=/absolute/path/to/scummvm-release.aar."
             }
@@ -106,5 +139,7 @@ val verifyReleaseAar =
     }
 
 tasks.configureEach {
-    if (name == "preReleaseBuild") dependsOn(verifyReleaseAar)
+    // Flavors rename the lifecycle task from preReleaseBuild to
+    // pre<Flavor>ReleaseBuild; only the "local" flavor reads a flat AAR file.
+    if (name == "preLocalReleaseBuild") dependsOn(verifyReleaseAar)
 }

@@ -146,7 +146,7 @@ jobs:
 
       - name: Build sample app from aggregate AAR
         run: |
-          ./gradlew --no-daemon :app:assembleRelease \
+          ./gradlew --no-daemon :app:assembleLocalRelease \
             -Pscummvm.releaseAar="${GITHUB_WORKSPACE}/android/scummvm/build/outputs/aar/scummvm-release.aar" \
             -Pscummvm.abis="${SCUMMVM_ABIS}"
 
@@ -154,7 +154,7 @@ jobs:
         run: |
           scripts/verify-release-artifacts.sh \
             android/scummvm/build/outputs/aar/scummvm-release.aar \
-            android/app/build/outputs/apk/release/app-release-unsigned.apk \
+            android/app/build/outputs/apk/local/release/app-local-release-unsigned.apk \
             "${SCUMMVM_ABIS}"
 
       - name: Publish to GitHub Packages
@@ -186,6 +186,6 @@ jobs:
             android/scummvm/build/outputs/aar/scummvm-release.aar
             android/scummvm/build/publications/release/pom-default.xml
             android/scummvm/build/intermediates/source_jar/release/release-sources.jar
-            android/app/build/outputs/apk/release/app-release-unsigned.apk
+            android/app/build/outputs/apk/local/release/app-local-release-unsigned.apk
             android-release-provenance.txt
           if-no-files-found: error

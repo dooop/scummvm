@@ -309,7 +309,7 @@ jobs:
 
       - name: Build release test app from the AAR
         run: |
-          ./gradlew --no-daemon :app:assembleRelease \
+          ./gradlew --no-daemon :app:assembleLocalRelease \
             -Pscummvm.releaseAar="${GITHUB_WORKSPACE}/android/scummvm/build/outputs/aar/scummvm-release.aar" \
             -Pscummvm.abis="${SCUMMVM_ABIS}"
 
@@ -317,7 +317,7 @@ jobs:
         run: |
           scripts/verify-release-artifacts.sh \
             android/scummvm/build/outputs/aar/scummvm-release.aar \
-            android/app/build/outputs/apk/release/app-release-unsigned.apk \
+            android/app/build/outputs/apk/local/release/app-local-release-unsigned.apk \
             "${SCUMMVM_ABIS}"
 
       - name: Upload AAR

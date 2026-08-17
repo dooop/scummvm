@@ -164,37 +164,61 @@ Runs in CI as the `lint-kotlin` job in `.github/workflows/ci.yml`.
 
 ### Test app build modes
 
-The `:app` module opens ScummVM's launcher in a full-screen Compose host. Its
-engine dependency follows the Android build type:
+The `:app` module opens ScummVM's launcher in a full-screen Compose host. It
+has a `engineSource` flavor dimension (`local` / `maven`), independent of the
+usual `debug` / `release` build type, so four variants build:
 
-| App build | Engine dependency |
-|---|---|
-| `debug` | Local `:scummvm` project, including the local native engine build |
-| `release` | Prebuilt AAR, so the app can test an artifact downloaded from CI or a release |
+| Flavor | Build type | Engine dependency |
+|---|---|---|
+| `local` | `debug` | Local `:scummvm` project, including the local native engine build |
+| `local` | `release` | A flat prebuilt AAR read from disk, so the app can test an artifact downloaded from CI or a release before it's published |
+| `maven` | `debug` / `release` | The published `io.github.dooop:scummvm` artifact, resolved from this repository's GitHub Packages Maven registry |
 
 Build and install the local debug version:
 
 ```bash
-./gradlew :app:installDebug
+./gradlew :app:installLocalDebug
 ```
 
-For release, copy an uploaded artifact to `app/libs/scummvm-release.aar` and
-build normally:
+For `local`/`release`, copy an uploaded artifact to `app/libs/scummvm-release.aar`
+and build normally:
 
 ```bash
-./gradlew :app:assembleRelease
+./gradlew :app:assembleLocalRelease
 ```
 
 The artifact can also remain anywhere on disk:
 
 ```bash
-./gradlew :app:assembleRelease \
+./gradlew :app:assembleLocalRelease \
   -Pscummvm.releaseAar=/absolute/path/to/scummvm-release.aar
 ```
 
-Release builds fail early with a focused message when the AAR is missing. A
-flat AAR has no dependency metadata, so the app declares the wrapper's AndroidX,
-Compose, and coroutine runtime dependencies itself.
+`local`/`release` builds fail early with a focused message when the AAR is
+missing. A flat AAR has no dependency metadata, so the app declares the
+wrapper's AndroidX, Compose, and coroutine runtime dependencies itself.
+
+For `maven`, install and run against a published release:
+
+```bash
+./gradlew :app:installMavenDebug \
+  -Pscummvm.mavenVersion=0.7.0
+```
+
+`scummvm.mavenVersion` defaults to the latest published version (see the
+package page at `https://github.com/dooop/scummvm/packages`). GitHub Packages
+requires authentication to *read* Maven artifacts even from a public
+repository, so resolving this flavor needs a token with at least
+`read:packages` scope, supplied the same way as the publish credentials below:
+
+```bash
+./gradlew :app:assembleMavenRelease \
+  -Pgpr.user=YOUR_GITHUB_USER \
+  -Pgpr.key=YOUR_GITHUB_TOKEN
+```
+
+(or export `GITHUB_ACTOR` / `GITHUB_TOKEN`; both are picked up automatically,
+so no flags are needed in a workflow that already has `packages: read`).
 
 ### Android TV sample support
 
@@ -271,6 +295,7 @@ Set in `gradle.properties` or on the command line with `-P`.
 | `scummvm.prebuiltLibsDir` | *(unset)* | Skip the native build and package `<dir>/<abi>/libscummvm.so` instead. An optional adjacent 16 KB-compatible `libc++_shared.so` is preferred over the selected NDK copy. |
 | `scummvm.version` | `0.0.0-SNAPSHOT` | Maven publication version. An explicit value is required for remote publication. |
 | `scummvm.githubRepository` | `dooop/scummvm` | Owner/repository used for the GitHub Packages Maven endpoint. |
+| `scummvm.mavenVersion` | `0.7.0` | `:app` `maven`-flavor only: version of `io.github.dooop:scummvm` to resolve from GitHub Packages. |
 
 Iterating on the Kotlin layer without rebuilding the engine:
 
@@ -322,7 +347,7 @@ Run focused compilation while editing Kotlin or Compose code:
 
 ```bash
 ./gradlew :scummvm:assembleDebug
-./gradlew :app:assembleDebug
+./gradlew :app:assembleLocalDebug
 ```
 
 Before publishing, validate the artifact through the release sample path rather
@@ -330,12 +355,12 @@ than only through the local project dependency:
 
 ```bash
 ./gradlew :scummvm:assembleRelease
-./gradlew :app:assembleRelease \
+./gradlew :app:assembleLocalRelease \
   -Pscummvm.releaseAar="$PWD/android/scummvm/build/outputs/aar/scummvm-release.aar"
 unzip -l android/scummvm/build/outputs/aar/scummvm-release.aar
 scripts/verify-release-artifacts.sh \
   android/scummvm/build/outputs/aar/scummvm-release.aar \
-  android/app/build/outputs/apk/release/app-release-unsigned.apk \
+  android/app/build/outputs/apk/local/release/app-local-release-unsigned.apk \
   arm64-v8a,x86_64
 ```
 

@@ -67,7 +67,7 @@ jobs:
           key: android-release-native-v1-${{ matrix.abi }}-${{ hashFiles('.scummvmengine-sha', 'android/scummvm/build.gradle.kts', 'gradle.properties') }}
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v5
+        uses: gradle/actions/setup-gradle@v6
 
       - name: Build full engine AAR
         run: |
@@ -119,7 +119,7 @@ jobs:
           echo "ANDROID_NDK_HOME=${ANDROID_SDK_ROOT}/ndk/${NDK_VERSION}" >> "$GITHUB_ENV"
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v5
+        uses: gradle/actions/setup-gradle@v6
 
       - name: Download ABI AARs
         uses: actions/download-artifact@v8

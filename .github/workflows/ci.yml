@@ -331,5 +331,5 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: scummvm-android-test-app
-          path: android/app/build/outputs/apk/release/*.apk
+          path: android/app/build/outputs/apk/local/release/app-local-release-unsigned.apk
           if-no-files-found: error

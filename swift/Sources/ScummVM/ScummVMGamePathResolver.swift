@@ -18,6 +18,13 @@ actor ScummVMGamePathResolver {
       return nil
     }
 
+    let hasSecurityScopedAccess = sourceURL.startAccessingSecurityScopedResource()
+    defer {
+      if hasSecurityScopedAccess {
+        sourceURL.stopAccessingSecurityScopedResource()
+      }
+    }
+
     if Task.isCancelled {
       return sourceURL
     }

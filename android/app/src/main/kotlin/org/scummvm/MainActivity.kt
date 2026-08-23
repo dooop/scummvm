@@ -17,8 +17,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import org.scummvm.app.BuildConfig
+import org.scummvm.app.R
 
 class MainActivity : ComponentActivity() {
     private var activeEngine: ScummVMEngine? = null
@@ -62,11 +64,11 @@ class MainActivity : ComponentActivity() {
                 when (val current = state) {
                     ScummVMState.Idle,
                     ScummVMState.PreparingData,
-                    -> Status("Preparing ScummVM (${BuildConfig.ENGINE_SOURCE})...")
+                    -> Status(stringResource(R.string.status_preparing, BuildConfig.ENGINE_SOURCE))
 
                     is ScummVMState.Failed ->
                         Status(
-                            text = current.cause.message ?: "ScummVM failed to start",
+                            text = current.cause.message ?: stringResource(R.string.error_start_failed),
                             color = Color(0xFFFF8A80),
                         )
 

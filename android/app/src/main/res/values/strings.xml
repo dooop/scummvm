@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">ScummVM</string>
+    <string name="error_start_failed">ScummVM failed to start</string>
+    <string name="status_preparing">Preparing ScummVM (%1$s)…</string>
 </resources>

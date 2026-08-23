@@ -6,10 +6,10 @@ let binaryBaseURL = "https://github.com/dooop/scummvm/releases/download/0.2.0"
 
 // Prebuilt ScummVM engine + platform glue. Published by .github/workflows/release-engine.yml;
 // bump the tag and all three checksums together when a new engine build ships.
-let engineBinaryBaseURL = "https://github.com/dooop/scummvm/releases/download/0.7.0"
-let engineChecksumiOS = "a75a12edebbfe8ef16e42d64835e7d7c64de294fa1105c86a4b621210592bf74"
-let engineChecksumtvOS = "52097e9c63b26caf9677e20bf1f13216cb99794f1073b593001ead0bd4d8622e"
-let engineChecksummacOS = "293ca8f2300b026c4ef3148ee05b76f20e20abc55526b6ad17e1aa978af01de4"
+let engineBinaryBaseURL = "https://github.com/dooop/scummvm/releases/download/0.7.1"
+let engineChecksumiOS = "44a3bdd265f15fdfeb3e09f12ad05a877574f6dda8a992bbe826ef5799ead5d3"
+let engineChecksumtvOS = "f61e973d62f00ba6b1f5dcd0c1ed7645fd1900b28005117291057f0d266cabb1"
+let engineChecksummacOS = "3622026ec8e208347ba3415c49505ec1eb9f89502d7cbfd270d016a59407d5e0"
 // Internal release validation can point binary mode at freshly assembled local
 // XCFrameworks before they are published. The path is relative to the package root.
 let localEngineArtifactsPath = ProcessInfo.processInfo.environment["SCUMMVM_ENGINE_ARTIFACTS_DIR"]

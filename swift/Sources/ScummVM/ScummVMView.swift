@@ -8,46 +8,46 @@
 import SwiftUI
 
 #if os(tvOS)
-  import ScummVMtvOS
+    import ScummVMtvOS
 #elseif os(iOS)
-  import ScummVMiOS
+    import ScummVMiOS
 #elseif os(macOS)
-  import ScummVMmacOS
+    import ScummVMmacOS
 #endif
 
 #if os(macOS)
-  import AppKit
+    import AppKit
 
-  public struct ScummVMView: NSViewRepresentable {
-    public init() {}
+    public struct ScummVMView: NSViewRepresentable {
+        public init() {}
 
-    public func makeNSView(context: Context) -> NSView {
-      // SDL creates and manages its own window; provide an empty host view.
-      return NSView()
+        public func makeNSView(context: Context) -> NSView {
+            // SDL creates and manages its own window; provide an empty host view.
+            return NSView()
+        }
+
+        public func updateNSView(_ nsView: NSView, context: Context) {
+            // No updates needed
+        }
     }
-
-    public func updateNSView(_ nsView: NSView, context: Context) {
-      // No updates needed
-    }
-  }
 #else
-  import UIKit
+    import UIKit
 
-  public struct ScummVMView: UIViewControllerRepresentable {
-    public init() {}
+    public struct ScummVMView: UIViewControllerRepresentable {
+        public init() {}
 
-    public func makeUIViewController(context: Context) -> UIViewController {
-      let controller = ScummVMEngineSharedInstance().ui()
-      if let controller {
-        return controller
-      }
+        public func makeUIViewController(context: Context) -> UIViewController {
+            let controller = ScummVMEngineSharedInstance().ui()
+            if let controller {
+                return controller
+            }
 
-      // Avoid a SwiftUI trap if the ObjC bridge returns nil unexpectedly.
-      return UIViewController()
+            // Avoid a SwiftUI trap if the ObjC bridge returns nil unexpectedly.
+            return UIViewController()
+        }
+
+        public func updateUIViewController(_ uiViewController: UIViewController, context: Context) {
+            // No updates needed
+        }
     }
-
-    public func updateUIViewController(_ uiViewController: UIViewController, context: Context) {
-      // No updates needed
-    }
-  }
 #endif

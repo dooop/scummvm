@@ -9,150 +9,150 @@ import Foundation
 import SwiftUI
 
 #if os(tvOS)
-  import ScummVMtvOS
+    import ScummVMtvOS
 #elseif os(iOS)
-  import ScummVMiOS
+    import ScummVMiOS
 #elseif os(macOS)
-  import ScummVMmacOS
+    import ScummVMmacOS
 #endif
 
 @MainActor
 final class ScummVMViewModel: ObservableObject {
-  private var game: URL?
-  private let pathResolver = ScummVMGamePathResolver()
-  private var startTask: Task<Void, Never>?
-  private var shouldRunEngine = false
-  private var isEngineRunning = false
-  private var startRequestToken: UInt64 = 0
-  #if os(iOS)
-    private var attachedHostViewCount = 0
-    private var lastObservedScenePhase: ScenePhase = .active
-  #endif
+    private var game: URL?
+    private let pathResolver = ScummVMGamePathResolver()
+    private var startTask: Task<Void, Never>?
+    private var shouldRunEngine = false
+    private var isEngineRunning = false
+    private var startRequestToken: UInt64 = 0
+    #if os(iOS)
+        private var attachedHostViewCount = 0
+        private var lastObservedScenePhase: ScenePhase = .active
+    #endif
 
-  #if os(iOS)
-    static let sharedIOSHost = ScummVMViewModel(game: nil)
-  #endif
+    #if os(iOS)
+        static let sharedIOSHost = ScummVMViewModel(game: nil)
+    #endif
 
-  init(game: URL?) {
-    self.game = game
-    _ = ScummVMEngineSharedInstance()
-  }
-
-  deinit {
-    startTask?.cancel()
-    if isEngineRunning {
-      ScummVMEngineSharedInstance().stop()
+    init(game: URL?) {
+        self.game = game
+        _ = ScummVMEngineSharedInstance()
     }
-  }
 
-  func start() {
-    if shouldRunEngine {
-      if !isEngineRunning && startTask == nil {
+    deinit {
+        startTask?.cancel()
+        if isEngineRunning {
+            ScummVMEngineSharedInstance().stop()
+        }
+    }
+
+    func start() {
+        if shouldRunEngine {
+            if !isEngineRunning && startTask == nil {
+                beginStartResolution()
+            }
+            return
+        }
+
+        shouldRunEngine = true
         beginStartResolution()
-      }
-      return
     }
 
-    shouldRunEngine = true
-    beginStartResolution()
-  }
+    #if os(iOS)
+        func hostAttach(game: URL?, scenePhase: ScenePhase) {
+            attachedHostViewCount += 1
+            lastObservedScenePhase = scenePhase
+            setGameWithoutLaunching(game)
+            applyHostLifecyclePolicy()
+        }
 
-  #if os(iOS)
-    func hostAttach(game: URL?, scenePhase: ScenePhase) {
-      attachedHostViewCount += 1
-      lastObservedScenePhase = scenePhase
-      setGameWithoutLaunching(game)
-      applyHostLifecyclePolicy()
+        func hostDetach(scenePhase: ScenePhase) {
+            lastObservedScenePhase = scenePhase
+            attachedHostViewCount = max(0, attachedHostViewCount - 1)
+            applyHostLifecyclePolicy()
+        }
+
+        func hostScenePhaseChanged(_ scenePhase: ScenePhase) {
+            lastObservedScenePhase = scenePhase
+            applyHostLifecyclePolicy()
+        }
+    #endif
+
+    func stop() {
+        shouldRunEngine = false
+        cancelPendingStartResolution()
+
+        guard isEngineRunning else {
+            return
+        }
+
+        ScummVMEngineSharedInstance().stop()
+        isEngineRunning = false
     }
 
-    func hostDetach(scenePhase: ScenePhase) {
-      lastObservedScenePhase = scenePhase
-      attachedHostViewCount = max(0, attachedHostViewCount - 1)
-      applyHostLifecyclePolicy()
+    private func beginStartResolution() {
+        cancelPendingStartResolution()
+
+        startRequestToken &+= 1
+        let startToken = startRequestToken
+
+        let requestedGame = game
+        let pathResolver = self.pathResolver
+        startTask = Task {
+            let resolvedGameURL = await pathResolver.resolveGamePath(requestedGame)
+            completeResolvedStartPath(startToken: startToken, resolvedGameURL: resolvedGameURL)
+        }
     }
 
-    func hostScenePhaseChanged(_ scenePhase: ScenePhase) {
-      lastObservedScenePhase = scenePhase
-      applyHostLifecyclePolicy()
-    }
-  #endif
+    private func completeResolvedStartPath(startToken: UInt64, resolvedGameURL: URL?) {
+        guard !Task.isCancelled else {
+            return
+        }
 
-  func stop() {
-    shouldRunEngine = false
-    cancelPendingStartResolution()
+        guard startToken == startRequestToken else {
+            return
+        }
 
-    guard isEngineRunning else {
-      return
-    }
+        startTask = nil
 
-    ScummVMEngineSharedInstance().stop()
-    isEngineRunning = false
-  }
+        guard shouldRunEngine else {
+            return
+        }
 
-  private func beginStartResolution() {
-    cancelPendingStartResolution()
+        if isEngineRunning {
+            ScummVMEngineSharedInstance().stop()
+            isEngineRunning = false
+        }
 
-    startRequestToken &+= 1
-    let startToken = startRequestToken
-
-    let requestedGame = game
-    let pathResolver = self.pathResolver
-    startTask = Task {
-      let resolvedGameURL = await pathResolver.resolveGamePath(requestedGame)
-      completeResolvedStartPath(startToken: startToken, resolvedGameURL: resolvedGameURL)
-    }
-  }
-
-  private func completeResolvedStartPath(startToken: UInt64, resolvedGameURL: URL?) {
-    guard !Task.isCancelled else {
-      return
+        ScummVMEngineSharedInstance().start(gamePath: resolvedGameURL?.path)
+        isEngineRunning = true
     }
 
-    guard startToken == startRequestToken else {
-      return
+    private func cancelPendingStartResolution() {
+        startTask?.cancel()
+        startTask = nil
     }
 
-    startTask = nil
+    #if os(iOS)
+        private func applyHostLifecyclePolicy() {
+            guard attachedHostViewCount > 0 else {
+                stop()
+                return
+            }
 
-    guard shouldRunEngine else {
-      return
+            switch lastObservedScenePhase {
+            case .active:
+                start()
+            case .inactive:
+                break
+            case .background:
+                stop()
+            @unknown default:
+                break
+            }
+        }
+    #endif
+
+    private func setGameWithoutLaunching(_ game: URL?) {
+        self.game = game
     }
-
-    if isEngineRunning {
-      ScummVMEngineSharedInstance().stop()
-      isEngineRunning = false
-    }
-
-    ScummVMEngineSharedInstance().start(gamePath: resolvedGameURL?.path)
-    isEngineRunning = true
-  }
-
-  private func cancelPendingStartResolution() {
-    startTask?.cancel()
-    startTask = nil
-  }
-
-  #if os(iOS)
-    private func applyHostLifecyclePolicy() {
-      guard attachedHostViewCount > 0 else {
-        stop()
-        return
-      }
-
-      switch lastObservedScenePhase {
-      case .active:
-        start()
-      case .inactive:
-        break
-      case .background:
-        stop()
-      @unknown default:
-        break
-      }
-    }
-  #endif
-
-  private func setGameWithoutLaunching(_ game: URL?) {
-    self.game = game
-  }
 }

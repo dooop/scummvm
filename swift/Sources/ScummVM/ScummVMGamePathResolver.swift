@@ -9,358 +9,363 @@ import Foundation
 import ZIPFoundation
 
 actor ScummVMGamePathResolver {
-  private static let supportedArchiveExtensions: Set<String> = ["zip", "scummvm"]
+    private static let supportedArchiveExtensions: Set<String> = ["zip", "scummvm"]
 
-  func resolveGamePath(_ game: URL?) async -> URL? {
-    guard let sourceURL = game else { return nil }
-    guard sourceURL.isFileURL else {
-      print("ScummVM: Unsupported non-file game URL: \(sourceURL)")
-      return nil
-    }
-
-    let hasSecurityScopedAccess = sourceURL.startAccessingSecurityScopedResource()
-    defer {
-      if hasSecurityScopedAccess {
-        sourceURL.stopAccessingSecurityScopedResource()
-      }
-    }
-
-    if Task.isCancelled {
-      return sourceURL
-    }
-
-    let fileManager = FileManager.default
-    var isDirectory: ObjCBool = false
-
-    guard fileManager.fileExists(atPath: sourceURL.path, isDirectory: &isDirectory) else {
-      return sourceURL
-    }
-
-    do {
-      if isDirectory.boolValue {
-        #if os(iOS) || os(tvOS)
-          return try importDirectoryIfNeeded(at: sourceURL, using: fileManager)
-        #else
-          return sourceURL
-        #endif
-      }
-
-      if Self.supportedArchiveExtensions.contains(sourceURL.pathExtension.lowercased()) {
-        return try extractArchive(at: sourceURL, using: fileManager)
-      }
-
-      return try importFileIfNeeded(at: sourceURL, using: fileManager)
-    } catch {
-      print("ScummVM: Failed to resolve game path at \(sourceURL.path): \(error)")
-      return sourceURL
-    }
-  }
-
-  private func extractArchive(at archiveURL: URL, using fileManager: FileManager) throws -> URL {
-    if Task.isCancelled {
-      return archiveURL
-    }
-
-    let extractionRoot = try extractionRootDirectory(using: fileManager)
-    let destination = extractionRoot.appendingPathComponent(
-      Self.extractionDirectoryName(for: archiveURL),
-      isDirectory: true
-    )
-
-    if fileManager.fileExists(atPath: destination.path) {
-      let cachedDirectory = try preferredGameDirectory(in: destination, using: fileManager)
-      if try isUsableGamePath(cachedDirectory, using: fileManager) {
-        return cachedDirectory
-      }
-
-      try? fileManager.removeItem(at: destination)
-    }
-
-    try fileManager.createDirectory(at: destination, withIntermediateDirectories: true)
-    try fileManager.unzipItem(at: archiveURL, to: destination)
-
-    let extractedDirectory = try preferredGameDirectory(in: destination, using: fileManager)
-    if !(try isUsableGamePath(extractedDirectory, using: fileManager)) {
-      throw CocoaError(.fileNoSuchFile)
-    }
-    return extractedDirectory
-  }
-
-  private func importFileIfNeeded(at sourceURL: URL, using fileManager: FileManager) throws -> URL {
-    if try isManagedLaunchPath(sourceURL, using: fileManager) {
-      return sourceURL
-    }
-
-    if Task.isCancelled {
-      return sourceURL
-    }
-
-    let importRoot = try importedFilesRootDirectory(using: fileManager)
-    let destination = importRoot.appendingPathComponent(
-      Self.importedFileName(for: sourceURL),
-      isDirectory: false
-    )
-
-    if fileManager.fileExists(atPath: destination.path) {
-      if try isUsableGamePath(destination, using: fileManager) {
-        return destination
-      }
-
-      try? fileManager.removeItem(at: destination)
-    }
-
-    try fileManager.copyItem(at: sourceURL, to: destination)
-
-    if !(try isUsableGamePath(destination, using: fileManager)) {
-      throw CocoaError(.fileNoSuchFile)
-    }
-
-    return destination
-  }
-
-  #if os(iOS) || os(tvOS)
-    private func importDirectoryIfNeeded(at sourceURL: URL, using fileManager: FileManager) throws
-      -> URL
-    {
-      if try isLaunchableInPlaceOnSandboxedPlatforms(sourceURL, using: fileManager) {
-        return sourceURL
-      }
-
-      if Task.isCancelled {
-        return sourceURL
-      }
-
-      let importRoot = try importedDirectoriesRootDirectory(using: fileManager)
-      let destination = importRoot.appendingPathComponent(
-        Self.extractionDirectoryName(for: sourceURL),
-        isDirectory: true
-      )
-
-      if fileManager.fileExists(atPath: destination.path) {
-        if try isUsableGamePath(destination, using: fileManager) {
-          return destination
+    func resolveGamePath(_ game: URL?) async -> URL? {
+        guard let sourceURL = game else { return nil }
+        guard sourceURL.isFileURL else {
+            print("ScummVM: Unsupported non-file game URL: \(sourceURL)")
+            return nil
         }
 
-        try? fileManager.removeItem(at: destination)
-      }
+        let hasSecurityScopedAccess = sourceURL.startAccessingSecurityScopedResource()
+        defer {
+            if hasSecurityScopedAccess {
+                sourceURL.stopAccessingSecurityScopedResource()
+            }
+        }
 
-      try fileManager.copyItem(at: sourceURL, to: destination)
+        if Task.isCancelled {
+            return sourceURL
+        }
 
-      if !(try isUsableGamePath(destination, using: fileManager)) {
-        throw CocoaError(.fileNoSuchFile)
-      }
+        let fileManager = FileManager.default
+        var isDirectory: ObjCBool = false
 
-      return destination
+        guard fileManager.fileExists(atPath: sourceURL.path, isDirectory: &isDirectory) else {
+            return sourceURL
+        }
+
+        do {
+            if isDirectory.boolValue {
+                #if os(iOS) || os(tvOS)
+                    return try importDirectoryIfNeeded(at: sourceURL, using: fileManager)
+                #else
+                    return sourceURL
+                #endif
+            }
+
+            if Self.supportedArchiveExtensions.contains(sourceURL.pathExtension.lowercased()) {
+                return try extractArchive(at: sourceURL, using: fileManager)
+            }
+
+            return try importFileIfNeeded(at: sourceURL, using: fileManager)
+        } catch {
+            print("ScummVM: Failed to resolve game path at \(sourceURL.path): \(error)")
+            return sourceURL
+        }
     }
 
-    private func importedDirectoriesRootDirectory(using fileManager: FileManager) throws -> URL {
-      try importedContentRootDirectory(named: "ImportedDirectories", using: fileManager)
+    private func extractArchive(at archiveURL: URL, using fileManager: FileManager) throws -> URL {
+        if Task.isCancelled {
+            return archiveURL
+        }
+
+        let extractionRoot = try extractionRootDirectory(using: fileManager)
+        let destination = extractionRoot.appendingPathComponent(
+            Self.extractionDirectoryName(for: archiveURL),
+            isDirectory: true
+        )
+
+        if fileManager.fileExists(atPath: destination.path) {
+            let cachedDirectory = try preferredGameDirectory(in: destination, using: fileManager)
+            if try isUsableGamePath(cachedDirectory, using: fileManager) {
+                return cachedDirectory
+            }
+
+            try? fileManager.removeItem(at: destination)
+        }
+
+        try fileManager.createDirectory(at: destination, withIntermediateDirectories: true)
+        try fileManager.unzipItem(at: archiveURL, to: destination)
+
+        let extractedDirectory = try preferredGameDirectory(in: destination, using: fileManager)
+        if !(try isUsableGamePath(extractedDirectory, using: fileManager)) {
+            throw CocoaError(.fileNoSuchFile)
+        }
+        return extractedDirectory
     }
 
-    private func runtimeLaunchRootDirectory(using fileManager: FileManager) throws -> URL {
-      let directory: FileManager.SearchPathDirectory = {
-        #if os(tvOS)
-          .cachesDirectory
-        #else
-          .documentDirectory
-        #endif
-      }()
-
-      return try fileManager.url(
-        for: directory,
-        in: .userDomainMask,
-        appropriateFor: nil,
-        create: true
-      )
-    }
-
-    private func isLaunchableInPlaceOnSandboxedPlatforms(
-      _ sourceURL: URL, using fileManager: FileManager
-    )
-      throws -> Bool
+    private func importFileIfNeeded(at sourceURL: URL, using fileManager: FileManager) throws -> URL
     {
-      let runtimeRootURL = try runtimeLaunchRootDirectory(using: fileManager)
+        if try isManagedLaunchPath(sourceURL, using: fileManager) {
+            return sourceURL
+        }
 
-      if Self.path(sourceURL, isWithin: runtimeRootURL) {
-        return true
-      }
+        if Task.isCancelled {
+            return sourceURL
+        }
 
-      if let bundleResourceURL = Bundle.main.resourceURL,
-        Self.path(sourceURL, isWithin: bundleResourceURL)
-      {
-        return true
-      }
+        let importRoot = try importedFilesRootDirectory(using: fileManager)
+        let destination = importRoot.appendingPathComponent(
+            Self.importedFileName(for: sourceURL),
+            isDirectory: false
+        )
 
-      return false
+        if fileManager.fileExists(atPath: destination.path) {
+            if try isUsableGamePath(destination, using: fileManager) {
+                return destination
+            }
+
+            try? fileManager.removeItem(at: destination)
+        }
+
+        try fileManager.copyItem(at: sourceURL, to: destination)
+
+        if !(try isUsableGamePath(destination, using: fileManager)) {
+            throw CocoaError(.fileNoSuchFile)
+        }
+
+        return destination
     }
-  #endif
 
-  private func importedFilesRootDirectory(using fileManager: FileManager) throws -> URL {
-    try importedContentRootDirectory(named: "ImportedFiles", using: fileManager)
-  }
+    #if os(iOS) || os(tvOS)
+        private func importDirectoryIfNeeded(at sourceURL: URL, using fileManager: FileManager)
+            throws
+            -> URL
+        {
+            if try isLaunchableInPlaceOnSandboxedPlatforms(sourceURL, using: fileManager) {
+                return sourceURL
+            }
 
-  private func extractionRootDirectory(using fileManager: FileManager) throws -> URL {
-    try importedContentRootDirectory(named: "ImportedArchives", using: fileManager)
-  }
+            if Task.isCancelled {
+                return sourceURL
+            }
 
-  private func managedContentBaseDirectory(using fileManager: FileManager) throws -> URL {
-    let baseURL: URL
-    #if os(iOS)
-      baseURL = try fileManager.url(
-        for: .documentDirectory,
-        in: .userDomainMask,
-        appropriateFor: nil,
-        create: true
-      )
-    #elseif os(tvOS)
-      baseURL = try fileManager.url(
-        for: .cachesDirectory,
-        in: .userDomainMask,
-        appropriateFor: nil,
-        create: true
-      )
-    #else
-      baseURL = try fileManager.url(
-        for: .applicationSupportDirectory,
-        in: .userDomainMask,
-        appropriateFor: nil,
-        create: true
-      )
+            let importRoot = try importedDirectoriesRootDirectory(using: fileManager)
+            let destination = importRoot.appendingPathComponent(
+                Self.extractionDirectoryName(for: sourceURL),
+                isDirectory: true
+            )
+
+            if fileManager.fileExists(atPath: destination.path) {
+                if try isUsableGamePath(destination, using: fileManager) {
+                    return destination
+                }
+
+                try? fileManager.removeItem(at: destination)
+            }
+
+            try fileManager.copyItem(at: sourceURL, to: destination)
+
+            if !(try isUsableGamePath(destination, using: fileManager)) {
+                throw CocoaError(.fileNoSuchFile)
+            }
+
+            return destination
+        }
+
+        private func importedDirectoriesRootDirectory(using fileManager: FileManager) throws -> URL
+        {
+            try importedContentRootDirectory(named: "ImportedDirectories", using: fileManager)
+        }
+
+        private func runtimeLaunchRootDirectory(using fileManager: FileManager) throws -> URL {
+            let directory: FileManager.SearchPathDirectory = {
+                #if os(tvOS)
+                    .cachesDirectory
+                #else
+                    .documentDirectory
+                #endif
+            }()
+
+            return try fileManager.url(
+                for: directory,
+                in: .userDomainMask,
+                appropriateFor: nil,
+                create: true
+            )
+        }
+
+        private func isLaunchableInPlaceOnSandboxedPlatforms(
+            _ sourceURL: URL, using fileManager: FileManager
+        )
+            throws -> Bool
+        {
+            let runtimeRootURL = try runtimeLaunchRootDirectory(using: fileManager)
+
+            if Self.path(sourceURL, isWithin: runtimeRootURL) {
+                return true
+            }
+
+            if let bundleResourceURL = Bundle.main.resourceURL,
+                Self.path(sourceURL, isWithin: bundleResourceURL)
+            {
+                return true
+            }
+
+            return false
+        }
     #endif
 
-    let rootURL = baseURL.appendingPathComponent("ScummVM", isDirectory: true)
-    try fileManager.createDirectory(at: rootURL, withIntermediateDirectories: true)
-    return rootURL
-  }
-
-  private func importedContentRootDirectory(
-    named leafDirectory: String, using fileManager: FileManager
-  )
-    throws -> URL
-  {
-    let rootURL = try managedContentBaseDirectory(using: fileManager)
-      .appendingPathComponent(leafDirectory, isDirectory: true)
-    try fileManager.createDirectory(at: rootURL, withIntermediateDirectories: true)
-    return rootURL
-  }
-
-  private func isManagedLaunchPath(_ sourceURL: URL, using fileManager: FileManager) throws -> Bool
-  {
-    let managedContentBaseURL = try managedContentBaseDirectory(using: fileManager)
-    if Self.path(sourceURL, isWithin: managedContentBaseURL) {
-      return true
+    private func importedFilesRootDirectory(using fileManager: FileManager) throws -> URL {
+        try importedContentRootDirectory(named: "ImportedFiles", using: fileManager)
     }
 
-    if let bundleResourceURL = Bundle.main.resourceURL,
-      Self.path(sourceURL, isWithin: bundleResourceURL)
+    private func extractionRootDirectory(using fileManager: FileManager) throws -> URL {
+        try importedContentRootDirectory(named: "ImportedArchives", using: fileManager)
+    }
+
+    private func managedContentBaseDirectory(using fileManager: FileManager) throws -> URL {
+        let baseURL: URL
+        #if os(iOS)
+            baseURL = try fileManager.url(
+                for: .documentDirectory,
+                in: .userDomainMask,
+                appropriateFor: nil,
+                create: true
+            )
+        #elseif os(tvOS)
+            baseURL = try fileManager.url(
+                for: .cachesDirectory,
+                in: .userDomainMask,
+                appropriateFor: nil,
+                create: true
+            )
+        #else
+            baseURL = try fileManager.url(
+                for: .applicationSupportDirectory,
+                in: .userDomainMask,
+                appropriateFor: nil,
+                create: true
+            )
+        #endif
+
+        let rootURL = baseURL.appendingPathComponent("ScummVM", isDirectory: true)
+        try fileManager.createDirectory(at: rootURL, withIntermediateDirectories: true)
+        return rootURL
+    }
+
+    private func importedContentRootDirectory(
+        named leafDirectory: String, using fileManager: FileManager
+    )
+        throws -> URL
     {
-      return true
+        let rootURL = try managedContentBaseDirectory(using: fileManager)
+            .appendingPathComponent(leafDirectory, isDirectory: true)
+        try fileManager.createDirectory(at: rootURL, withIntermediateDirectories: true)
+        return rootURL
     }
 
-    return false
-  }
+    private func isManagedLaunchPath(_ sourceURL: URL, using fileManager: FileManager) throws
+        -> Bool
+    {
+        let managedContentBaseURL = try managedContentBaseDirectory(using: fileManager)
+        if Self.path(sourceURL, isWithin: managedContentBaseURL) {
+            return true
+        }
 
-  private func preferredGameDirectory(in extractionDirectory: URL, using fileManager: FileManager)
-    throws
-    -> URL
-  {
-    var currentDirectory = extractionDirectory
+        if let bundleResourceURL = Bundle.main.resourceURL,
+            Self.path(sourceURL, isWithin: bundleResourceURL)
+        {
+            return true
+        }
 
-    while true {
-      let contents = try meaningfulContents(in: currentDirectory, using: fileManager)
-
-      guard contents.count == 1 else {
-        return currentDirectory
-      }
-
-      let onlyItem = contents[0]
-      let values = try onlyItem.resourceValues(forKeys: [.isDirectoryKey])
-      guard values.isDirectory == true else {
-        return currentDirectory
-      }
-
-      currentDirectory = onlyItem
-    }
-  }
-
-  private func meaningfulContents(in directory: URL, using fileManager: FileManager) throws -> [URL]
-  {
-    try fileManager.contentsOfDirectory(
-      at: directory,
-      includingPropertiesForKeys: [.isDirectoryKey],
-      options: [.skipsHiddenFiles]
-    ).filter { !Self.shouldIgnoreExtractedEntry(named: $0.lastPathComponent) }
-  }
-
-  private func isUsableGamePath(_ path: URL, using fileManager: FileManager) throws -> Bool {
-    var isDirectory: ObjCBool = false
-    guard fileManager.fileExists(atPath: path.path, isDirectory: &isDirectory) else {
-      return false
+        return false
     }
 
-    if !isDirectory.boolValue {
-      return true
+    private func preferredGameDirectory(in extractionDirectory: URL, using fileManager: FileManager)
+        throws
+        -> URL
+    {
+        var currentDirectory = extractionDirectory
+
+        while true {
+            let contents = try meaningfulContents(in: currentDirectory, using: fileManager)
+
+            guard contents.count == 1 else {
+                return currentDirectory
+            }
+
+            let onlyItem = contents[0]
+            let values = try onlyItem.resourceValues(forKeys: [.isDirectoryKey])
+            guard values.isDirectory == true else {
+                return currentDirectory
+            }
+
+            currentDirectory = onlyItem
+        }
     }
 
-    let contents = try meaningfulContents(in: path, using: fileManager)
-    return !contents.isEmpty
-  }
-
-  private static func shouldIgnoreExtractedEntry(named name: String) -> Bool {
-    switch name.lowercased() {
-    case "__macosx":
-      return true
-    default:
-      return false
-    }
-  }
-
-  private static func extractionDirectoryName(for archiveURL: URL) -> String {
-    let baseName = archiveURL.deletingPathExtension().lastPathComponent
-    let sanitizedBaseName = sanitizedPathComponent(baseName)
-    let hash = fnv1a64(archiveURL.standardizedFileURL.path)
-    return "\(sanitizedBaseName)-\(String(hash, radix: 16))"
-  }
-
-  private static func importedFileName(for fileURL: URL) -> String {
-    let baseName = fileURL.deletingPathExtension().lastPathComponent
-    let fileExtension = fileURL.pathExtension
-    let sanitizedBaseName = sanitizedPathComponent(baseName)
-    let hash = fnv1a64(fileURL.standardizedFileURL.path)
-    let stem = "\(sanitizedBaseName)-\(String(hash, radix: 16))"
-
-    guard !fileExtension.isEmpty else {
-      return stem
+    private func meaningfulContents(in directory: URL, using fileManager: FileManager) throws
+        -> [URL]
+    {
+        try fileManager.contentsOfDirectory(
+            at: directory,
+            includingPropertiesForKeys: [.isDirectoryKey],
+            options: [.skipsHiddenFiles]
+        ).filter { !Self.shouldIgnoreExtractedEntry(named: $0.lastPathComponent) }
     }
 
-    return "\(stem).\(fileExtension)"
-  }
+    private func isUsableGamePath(_ path: URL, using fileManager: FileManager) throws -> Bool {
+        var isDirectory: ObjCBool = false
+        guard fileManager.fileExists(atPath: path.path, isDirectory: &isDirectory) else {
+            return false
+        }
 
-  private static func sanitizedPathComponent(_ value: String) -> String {
-    value.replacingOccurrences(of: "/", with: "-")
-  }
+        if !isDirectory.boolValue {
+            return true
+        }
 
-  private static func fnv1a64(_ string: String) -> UInt64 {
-    let offsetBasis: UInt64 = 0xcbf2_9ce4_8422_2325
-    let prime: UInt64 = 0x100_0000_01b3
-    var hash = offsetBasis
-
-    for byte in string.utf8 {
-      hash = (hash ^ UInt64(byte)) &* prime
+        let contents = try meaningfulContents(in: path, using: fileManager)
+        return !contents.isEmpty
     }
 
-    return hash
-  }
-
-  private static func path(_ childURL: URL, isWithin parentURL: URL) -> Bool {
-    let childPath = childURL.resolvingSymlinksInPath().standardizedFileURL.path
-    let parentPath = parentURL.resolvingSymlinksInPath().standardizedFileURL.path
-
-    if childPath == parentPath {
-      return true
+    private static func shouldIgnoreExtractedEntry(named name: String) -> Bool {
+        switch name.lowercased() {
+        case "__macosx":
+            return true
+        default:
+            return false
+        }
     }
 
-    let parentPrefix = parentPath.hasSuffix("/") ? parentPath : "\(parentPath)/"
-    return childPath.hasPrefix(parentPrefix)
-  }
+    private static func extractionDirectoryName(for archiveURL: URL) -> String {
+        let baseName = archiveURL.deletingPathExtension().lastPathComponent
+        let sanitizedBaseName = sanitizedPathComponent(baseName)
+        let hash = fnv1a64(archiveURL.standardizedFileURL.path)
+        return "\(sanitizedBaseName)-\(String(hash, radix: 16))"
+    }
+
+    private static func importedFileName(for fileURL: URL) -> String {
+        let baseName = fileURL.deletingPathExtension().lastPathComponent
+        let fileExtension = fileURL.pathExtension
+        let sanitizedBaseName = sanitizedPathComponent(baseName)
+        let hash = fnv1a64(fileURL.standardizedFileURL.path)
+        let stem = "\(sanitizedBaseName)-\(String(hash, radix: 16))"
+
+        guard !fileExtension.isEmpty else {
+            return stem
+        }
+
+        return "\(stem).\(fileExtension)"
+    }
+
+    private static func sanitizedPathComponent(_ value: String) -> String {
+        value.replacingOccurrences(of: "/", with: "-")
+    }
+
+    private static func fnv1a64(_ string: String) -> UInt64 {
+        let offsetBasis: UInt64 = 0xcbf2_9ce4_8422_2325
+        let prime: UInt64 = 0x100_0000_01b3
+        var hash = offsetBasis
+
+        for byte in string.utf8 {
+            hash = (hash ^ UInt64(byte)) &* prime
+        }
+
+        return hash
+    }
+
+    private static func path(_ childURL: URL, isWithin parentURL: URL) -> Bool {
+        let childPath = childURL.resolvingSymlinksInPath().standardizedFileURL.path
+        let parentPath = parentURL.resolvingSymlinksInPath().standardizedFileURL.path
+
+        if childPath == parentPath {
+            return true
+        }
+
+        let parentPrefix = parentPath.hasSuffix("/") ? parentPath : "\(parentPath)/"
+        return childPath.hasPrefix(parentPrefix)
+    }
 }

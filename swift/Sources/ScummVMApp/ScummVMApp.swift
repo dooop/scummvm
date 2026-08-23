@@ -6,25 +6,25 @@
 //
 
 #if os(macOS)
-  import SwiftUI
-  import ScummVM
+    import SwiftUI
+    import ScummVM
 
-  @main
-  struct ScummVMApp: App {
-    var body: some Scene {
-      WindowGroup {
-        ScummVM()
-          .frame(minWidth: 800, minHeight: 600)
-      }
+    @main
+    struct ScummVMApp: App {
+        var body: some Scene {
+            WindowGroup {
+                ScummVM()
+                    .frame(minWidth: 800, minHeight: 600)
+            }
+        }
     }
-  }
 #else
-  import Foundation
+    import Foundation
 
-  @main
-  enum ScummVMApp {
-    static func main() {
-      fputs("ScummVMTestApp is only supported on macOS.\n", stderr)
+    @main
+    enum ScummVMApp {
+        static func main() {
+            fputs("ScummVMTestApp is only supported on macOS.\n", stderr)
+        }
     }
-  }
 #endif

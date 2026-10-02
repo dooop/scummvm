@@ -237,7 +237,7 @@ fun resolveCxxRuntime(abi: String): File {
 // reimplementing it via AGP's native/CMake integration, so there is no
 // automatic Prefab wiring -- fetch the AAR from Google's Maven repository
 // ourselves and pass its headers/libs to configure via CPPFLAGS/LDFLAGS.
-val oboeVersion = "1.10.0"
+val oboeVersion = "1.11.0"
 
 val oboe: Configuration by configurations.creating {
     isCanBeConsumed = false

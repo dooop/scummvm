@@ -26,8 +26,9 @@ the root `scummvm` git submodule and is never modified.
                 └── org/scummvm/scummvm/   ← upstream-package glue
 ```
 
-The library namespace, public Compose API, application ID, and Activity package
-are `org.scummvm`. The test app uses `org.scummvm.app` only for its
+The public Compose API, application ID, and Activity package are `org.scummvm`.
+The library namespace is `org.scummvm.scummvm` so that its generated `R` sits
+where the vendored upstream sources expect it. The test app uses `org.scummvm.app` only for its
 generated-code namespace because Android Gradle rejects an app and a consumed
 AAR with identical namespaces. The JNI compatibility classes must remain in
 `org.scummvm.scummvm`: upstream's native backend looks them up by that exact
@@ -119,7 +120,18 @@ Add what you actually need:
 
 `INTERNET` is only needed for ScummVM's cloud sync and its built-in web server;
 without `ACCESS_NETWORK_STATE` the engine conservatively assumes a metered
-connection. The Activity hosting `ScummVM` should be
+connection. For text-to-speech on Android 11 and newer, the app also has to make
+the system TTS engines visible to itself:
+
+```xml
+<queries>
+    <intent>
+        <action android:name="android.intent.action.TTS_SERVICE" />
+    </intent>
+</queries>
+```
+
+The Activity hosting `ScummVM` should be
 `android:configChanges="orientation|screenSize|keyboardHidden"` so the engine is
 not torn down on rotation, and `android:hardwareAccelerated="true"`.
 
@@ -270,14 +282,15 @@ build out-of-tree — exactly what `backends/platform/android/fatbundle.mk` does
 
 ```
 configureScummVM<Abi>   →  <submodule>/configure --host=android-<abi> …
-buildScummVM<Abi>       →  make -j libscummvm.so
-stageScummVMJniLibs     →  jni/<abi>/libscummvm.so
+buildScummVM<Abi>       →  make -j libscummvm.so libloader.so
+stageScummVMJniLibs     →  jni/<abi>/libscummvm.so, jni/<abi>/libloader.so
 ```
 
 The same staging task also packages Oboe's `liboboe.so` and the NDK's
 `libc++_shared.so` for each selected ABI. ScummVM links to Oboe dynamically, and
-Oboe links to the shared C++ runtime, so all three libraries must be present in
-the AAR and final APK.
+Oboe links to the shared C++ runtime, so all of them must be present in the AAR
+and final APK. `libloader.so` is upstream's small JNI proxy: `ScummVM.Reloader`
+loads it, and it `dlopen`s `libscummvm.so` and forwards `JNI_OnLoad`.
 
 `make` is left to decide what is stale, so the build task never reports
 up-to-date; use the prebuilt escape hatch below when iterating on Kotlin.
@@ -292,7 +305,7 @@ Set in `gradle.properties` or on the command line with `-P`.
 | `scummvm.abis` | `arm64-v8a,x86_64` | Comma-separated ABIs. `armeabi-v7a` and `x86` additionally need the NDK cpufeatures sources. |
 | `scummvm.configureArgs` | *(empty)* | Extra `./configure` flags, e.g. `--disable-all-engines --enable-engine=scumm,sky`. Empty means every stable engine — a long build. |
 | `scummvm.buildJobs` | *(CPU count)* | `make -j` parallelism. |
-| `scummvm.prebuiltLibsDir` | *(unset)* | Skip the native build and package `<dir>/<abi>/libscummvm.so` instead. An optional adjacent 16 KB-compatible `libc++_shared.so` is preferred over the selected NDK copy. |
+| `scummvm.prebuiltLibsDir` | *(unset)* | Skip the native build and package `<dir>/<abi>/libscummvm.so` and `<dir>/<abi>/libloader.so` instead. An optional adjacent 16 KB-compatible `libc++_shared.so` is preferred over the selected NDK copy. |
 | `scummvm.version` | `0.0.0-SNAPSHOT` | Maven publication version. An explicit value is required for remote publication. |
 | `scummvm.githubRepository` | `dooop/scummvm` | Owner/repository used for the GitHub Packages Maven endpoint. |
 | `scummvm.mavenVersion` | `0.7.0` | `:app` `maven`-flavor only: version of `io.github.dooop:scummvm` to resolve from GitHub Packages. |
@@ -364,7 +377,7 @@ scripts/verify-release-artifacts.sh \
   arm64-v8a,x86_64
 ```
 
-The AAR must contain `libscummvm.so`, `liboboe.so`, and `libc++_shared.so` for
+The AAR must contain `libscummvm.so`, `libloader.so`, `liboboe.so`, and `libc++_shared.so` for
 every requested ABI, along with the staged runtime assets and JNI-facing Java
 classes. Repository agent workflows for implementation, failure diagnosis, and
 artifact validation live in `.agents/skills/android-compose-development/`,

@@ -9,6 +9,12 @@
     <uses-feature android:name="android.hardware.faketouch" android:required="false" />
     <uses-feature android:name="android.software.leanback" android:required="false" />
 
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.TTS_SERVICE" />
+        </intent>
+    </queries>
+
     <application
         android:allowBackup="false"
         android:banner="@android:drawable/sym_def_app_icon"

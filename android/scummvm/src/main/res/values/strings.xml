@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Read by upstream's TextToSpeechManager (mirrors dists/android/res/values/strings.xml). -->
+    <string name="tts_voice_name" translatable="false">Default voice</string>
+</resources>

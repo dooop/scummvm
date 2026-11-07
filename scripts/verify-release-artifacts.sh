@@ -46,6 +46,8 @@ for class in \
     org/scummvm/ScummVMViewKt.class \
     org/scummvm/scummvm/ScummVM.class \
     org/scummvm/scummvm/ScummVMHost.class \
+    org/scummvm/scummvm/ScummVM\$Reloader.class \
+    org/scummvm/scummvm/TextToSpeechManager.class \
     org/scummvm/scummvm/net/HTTPManager.class; do
     grep -qx "$class" <<< "$CLASSES" || {
         echo "Missing required class: $class" >&2
@@ -111,12 +113,12 @@ APK_ABIS="$(find "$WORK_DIR/apk/lib" -mindepth 1 -maxdepth 1 -type d -exec basen
 
 for abi in "${ABIS[@]}"; do
     AAR_LIBRARIES="$(find "$WORK_DIR/aar/jni/$abi" -mindepth 1 -maxdepth 1 -type f -exec basename {} \; | sort)"
-    EXPECTED_LIBRARIES="$(printf '%s\n' libc++_shared.so liboboe.so libscummvm.so | sort)"
+    EXPECTED_LIBRARIES="$(printf '%s\n' libc++_shared.so libloader.so liboboe.so libscummvm.so | sort)"
     [ "$AAR_LIBRARIES" = "$EXPECTED_LIBRARIES" ] || {
         echo "Unexpected native library set for $abi: $(tr '\n' ' ' <<< "$AAR_LIBRARIES")" >&2
         exit 1
     }
-    for name in libscummvm.so liboboe.so libc++_shared.so; do
+    for name in libscummvm.so libloader.so liboboe.so libc++_shared.so; do
         require_file "$WORK_DIR/aar/jni/$abi/$name"
         require_file "$WORK_DIR/apk/lib/$abi/$name"
         check_elf "$WORK_DIR/aar/jni/$abi/$name" "$abi"

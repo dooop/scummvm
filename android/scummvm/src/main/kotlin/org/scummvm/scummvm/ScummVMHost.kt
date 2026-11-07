@@ -4,6 +4,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.media.midi.MidiDevice
 import android.net.ConnectivityManager
 import android.net.Uri
 import android.os.Build
@@ -38,6 +39,9 @@ internal class ScummVMHost(
         MyScummVMDestroyedCallback { onDestroyed(Thread.currentThread(), it) },
     ) {
     private val mainHandler = Handler(Looper.getMainLooper())
+
+    // One per engine run, as in upstream's Activity; the native side shuts it down.
+    private val ttsManager = TextToSpeechManager.make(context)
 
     private val clipboard: ClipboardManager?
         get() = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
@@ -155,6 +159,23 @@ internal class ScummVMHost(
         // "ScummVM on the local network". A library has no business registering
         // a service on the host app's behalf, so this is left to the app.
         Log.d(LOG_TAG, "HTTP service on port $localPort (minimal=$minimal); not advertised")
+    }
+
+    override fun getTTSManager(): TextToSpeechManager = ttsManager
+
+    // Matches upstream: the native MIDI backend needs AMidi, which arrived in Q.
+    override fun getMIDIDevices(): Array<String> {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return emptyArray()
+        return MidiPort.getMidiPorts(context).map { it.name }.toTypedArray()
+    }
+
+    override fun openMIDIDevice(
+        device: Int,
+        portId: IntArray,
+    ): MidiDevice? {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return null
+        val port = MidiPort.getMidiPorts(context).getOrNull(device) ?: return null
+        return port.open(context, portId)
     }
 
     override fun getSysArchives(): Array<String> = arrayOf(paths.assetsDir.path)

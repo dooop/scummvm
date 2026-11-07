@@ -39,13 +39,15 @@ require(File(upstreamDir, "configure").isFile) {
  * `backends/platform/android/org/scummvm/scummvm/`.
  *
  * Deliberately a hand-picked subset rather than the whole tree: every file here
- * depends on neither `ScummVMActivity` nor any Android resource, so they can
- * ship inside a library AAR without dragging in upstream's launcher UI, its
- * manifest entries or its `res/` folder. `ScummVM.java` is the JNI contract with
- * `jni-android.cpp`, and the `net/` package is looked up by `FindClass` from
+ * depends on neither `ScummVMActivity` nor upstream's `res/` folder, so they can
+ * ship inside a library AAR without dragging in upstream's launcher UI or its
+ * manifest entries. `ScummVM.java` is the JNI contract with `jni-android.cpp`,
+ * and the `net/` package is looked up by `FindClass` from
  * `backends/networking/basic/android/jni.cpp` (the Android port builds with
  * libcurl disabled and talks HTTP through Java); both must stay byte-identical
- * to upstream.
+ * to upstream. `TextToSpeechManager` is likewise resolved by `FindClass` from
+ * `backends/text-to-speech/android/`; its single string resource lives in this
+ * library's `res/`, and the namespace below makes AGP generate `R` in its package.
  *
  * Deliberately excluded: `ScummVMActivity`, `ScummVMEvents`, `SplashActivity`,
  * `ShortcutCreatorActivity`, `BackupManager`, the custom keyboard views and the
@@ -59,6 +61,8 @@ val upstreamJavaSources =
         "ExternalStorage.java",
         "INIParser.java",
         "Version.java",
+        "MidiPort.java",
+        "TextToSpeechManager.java",
         "net/HTTPManager.java",
         "net/HTTPRequest.java",
         "net/LETrustManager.java",
@@ -79,7 +83,9 @@ val prebuiltLibsDir: String? =
         ?.takeIf(String::isNotBlank)
 
 android {
-    namespace = "org.scummvm"
+    // Generated R lands in the upstream package, where vendored sources such as
+    // TextToSpeechManager resolve it unqualified. The public API stays in org.scummvm.
+    namespace = "org.scummvm.scummvm"
     compileSdk {
         version = release(37)
     }
@@ -395,11 +401,13 @@ abstract class ScummVMMake : DefaultTask() {
 
     @get:OutputFile abstract val library: RegularFileProperty
 
+    @get:OutputFile abstract val loader: RegularFileProperty
+
     @TaskAction
     fun run() {
         execOps.exec {
             workingDir = nativeBuildDir.get().asFile
-            commandLine(listOf("make", "-j${jobs.get()}", "libscummvm.so"))
+            commandLine(listOf("make", "-j${jobs.get()}", "libscummvm.so", "libloader.so"))
             environment("ANDROID_SDK_ROOT", sdkDir.get())
             environment("ANDROID_NDK_ROOT", ndkDir.get())
         }
@@ -492,13 +500,14 @@ val nativeLibraryTasks: Map<String, TaskProvider<ScummVMMake>> =
 
             tasks.register<ScummVMMake>("buildScummVM$suffix") {
                 group = "scummvm"
-                description = "Builds libscummvm.so for $abi."
+                description = "Builds libscummvm.so and its libloader.so proxy for $abi."
                 dependsOn(configureTask)
                 jobs.set(makeJobs)
                 sdkDir.set(sdkDirProvider)
                 ndkDir.set(ndkDirProvider)
                 nativeBuildDir.set(nativeBuild)
                 library.set(nativeBuild.map { it.file("libscummvm.so") })
+                loader.set(nativeBuild.map { it.file("libloader.so") })
                 // `make` is already incremental and knows far better than Gradle
                 // whether 3000+ translation units are stale, so always defer to it.
                 outputs.upToDateWhen { false }
@@ -603,18 +612,25 @@ val stageJniLibs =
         if (prebuiltLibsDir != null) {
             val root = file(prebuiltLibsDir)
             abis.forEach { abi ->
-                val library = File(root, "$abi/libscummvm.so")
-                require(library.isFile) {
-                    "scummvm.prebuiltLibsDir is set but ${library.path} is missing."
+                listOf("libscummvm.so", "libloader.so").forEach { name ->
+                    val library = File(root, "$abi/$name")
+                    require(library.isFile) {
+                        "scummvm.prebuiltLibsDir is set but ${library.path} is missing."
+                    }
+                    entries.put("$abi/$name", library.absolutePath)
+                    sourceFiles.from(library)
                 }
-                entries.put("$abi/libscummvm.so", library.absolutePath)
-                sourceFiles.from(library)
             }
         } else {
             nativeLibraryTasks.forEach { (abi, makeTask) ->
                 val library = makeTask.flatMap { it.library }
                 entries.put("$abi/libscummvm.so", library.map { it.asFile.absolutePath })
                 sourceFiles.from(library)
+
+                // ScummVM.java loads this proxy, which in turn dlopens libscummvm.so.
+                val loader = makeTask.flatMap { it.loader }
+                entries.put("$abi/libloader.so", loader.map { it.asFile.absolutePath })
+                sourceFiles.from(loader)
             }
         }
 

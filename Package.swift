@@ -122,9 +122,6 @@ let engineTargets: [Target] =
                 // Override: fixes a U32String/String comparison mismatch (pre-existing
                 // upstream bug, unrelated to this package's configuration)
                 "ScummVMEngine/gui/downloaddlcsdialog.cpp",
-                // Override: isImGuiRecorderEnabled() turned into a free function
-                // (see override file for why a header-only fix doesn't work here)
-                "ScummVMEngine/gui/EventRecorder.cpp",
                 "ScummVMEngine/common/updates.cpp",
                 "ScummVMEngine/backends/taskbar",
                 "ScummVMEngine/backends/fs/android",
@@ -274,6 +271,9 @@ let engineTargets: [Target] =
                 "ScummVMEngine/engines/waynesworld",
                 // Static data file – compiled via include from another TU
                 "ScummVMEngine/engines/supernova/screenstatic.cpp",
+                // #include-s zx_tape.cpp to give upstream's separate detection
+                // plugin its own object; in one target it duplicates every symbol
+                "ScummVMEngine/engines/freescape/detection_zx_tape.cpp",
                 // Macro-templated sprite-draw body – #include-d 12x by sprite.cpp with
                 // different macros predefined each time, not a standalone TU
                 "ScummVMEngine/engines/mads/core/sprite_0.cpp",

@@ -14,3 +14,7 @@
 -keepclassmembers class org.scummvm.scummvm.** {
     @androidx.annotation.Keep *;
 }
+
+# backends/text-to-speech/android/ looks this up by name and registers natives on it.
+-keep class org.scummvm.scummvm.TextToSpeechManager { *; }
+-keep class org.scummvm.scummvm.TextToSpeechManager$* { *; }

@@ -12,6 +12,7 @@ Validate the library artifact as a consumer receives it, not only the local proj
 1. Build the release AAR with `./gradlew :scummvm:assembleRelease` using the intended ABIs and engine configuration.
 2. Inspect the AAR contents and require, for every selected ABI:
    - `libscummvm.so`
+   - `libloader.so`
    - `liboboe.so`
    - `libc++_shared.so`
 3. Confirm staged runtime data, upstream JNI Java classes, wrapper classes, consumer rules, and the neutral library manifest are present.

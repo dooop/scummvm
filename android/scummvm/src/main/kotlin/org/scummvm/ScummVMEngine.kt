@@ -217,6 +217,13 @@ class ScummVMEngine internal constructor(
         }
         ownsEngineClaim = true
 
+        // ScummVM.java no longer loads the engine itself: initialising Reloader
+        // loads libloader.so, which dlopens libscummvm.so and registers its natives.
+        if (!ScummVM.Reloader.reload()) {
+            _state.value = ScummVMState.Failed(IllegalStateException("libscummvm.so could not be loaded."))
+            return
+        }
+
         hostView = view
         _state.value = ScummVMState.PreparingData
 

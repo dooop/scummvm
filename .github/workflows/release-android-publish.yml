@@ -134,6 +134,7 @@ jobs:
             test -f "$aar"
             mkdir -p "prebuilt-libs/${abi}"
             unzip -p "$aar" "jni/${abi}/libscummvm.so" > "prebuilt-libs/${abi}/libscummvm.so"
+            unzip -p "$aar" "jni/${abi}/libloader.so" > "prebuilt-libs/${abi}/libloader.so"
             unzip -p "$aar" "jni/${abi}/libc++_shared.so" > "prebuilt-libs/${abi}/libc++_shared.so"
           done
 

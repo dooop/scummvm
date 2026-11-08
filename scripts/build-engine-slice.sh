@@ -78,7 +78,13 @@ case "$SLICE_ID" in
   *) echo "error: unknown slice id '$SLICE_ID'" >&2; exit 2 ;;
 esac
 
-echo "==> Archiving $SCHEME for $SLICE_ID"
+# Xcode's Release default is -Os; upstream ships -O2. Overridable so the release
+# workflow can compare variants (e.g. SCUMMVM_OPT_LEVEL=s SCUMMVM_LTO=NO is the
+# previous behaviour).
+OPT_LEVEL="${SCUMMVM_OPT_LEVEL:-2}"
+LTO="${SCUMMVM_LTO:-YES_THIN}"
+
+echo "==> Archiving $SCHEME for $SLICE_ID (-O$OPT_LEVEL, LTO=$LTO)"
 cd "$REPO_ROOT"
 xcodebuild archive \
   -scheme "$SCHEME" \
@@ -90,6 +96,8 @@ xcodebuild archive \
   ONLY_ACTIVE_ARCH=NO \
   ARCHS=arm64 \
   EXCLUDED_ARCHS=x86_64 \
+  GCC_OPTIMIZATION_LEVEL="$OPT_LEVEL" \
+  LLVM_LTO="$LTO" \
   DEBUG_INFORMATION_FORMAT=dwarf \
   CODE_SIGNING_ALLOWED=NO \
   CODE_SIGNING_REQUIRED=NO
@@ -210,6 +218,7 @@ xcrun --sdk "$SDK" clang++ \
   -isysroot "$(xcrun --sdk "$SDK" --show-sdk-path)" \
   -install_name "@rpath/$PRODUCT.framework/$PRODUCT" \
   -compatibility_version 1 -current_version 1 \
+  -Wl,-dead_strip \
   "${ENGINE_LINK_FLAGS[@]}" \
   "${THIRD_PARTY_LIBS[@]}" \
   "${SYSTEM_FLAGS[@]}" \

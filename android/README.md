@@ -324,25 +324,32 @@ engines (a full engine build does not fit comfortably in a CI run), caches the
 native build directory against the submodule SHA, builds the release test app
 against the just-produced AAR, and uploads both artifacts.
 
-`.github/workflows/release-android-publish.yml` is the reusable workflow that
-builds the full stable engine set separately for `arm64-v8a` and `x86_64`,
-combines both slices into one AAR, builds the sample app from that exact AAR,
-validates contents, ELF architecture, and 16 KB alignment, and then publishes
-these Maven coordinates to this repository's GitHub Packages registry:
+Android releases are split into a build and a publish step, so nothing reaches
+Maven before it has been verified:
+
+- `.github/workflows/release-android-build.yml` (reusable) builds the full stable
+  engine set separately for `arm64-v8a` and `x86_64`, combines both slices into
+  one AAR, builds the sample app from that exact AAR, and validates contents, ELF
+  architecture, and 16 KB alignment. Its bundle holds the AAR, the prebuilt `.so`
+  files it was built from, the sample APK, and a provenance file recording
+  version, wrapper/upstream commits, ABIs, and NDK.
+- `.github/workflows/release-android-publish.yml` (reusable) checks out the
+  recorded wrapper commit and publishes that bundle's libraries, without a native
+  rebuild, to this repository's GitHub Packages registry:
 
 ```text
 io.github.dooop:scummvm:<version>
 ```
 
-It is called automatically, with the version taken from the Swift package tag,
-whenever an engine XCFramework version-bump PR is merged (see the root
-`CLAUDE.md` for that flow) — Android and the Swift package always ship the same
-version. `.github/workflows/release-android.yml` wraps the same reusable
-workflow behind a manual `workflow_dispatch` for an out-of-band Android-only
-republish (e.g. after a failed or incorrect release; published versions are
-immutable, so use a new version). The workflow's verified artifact bundle
-includes the AAR, sources JAR, generated POM, sample APK, and a provenance file
-recording wrapper/upstream commits, ABIs, and NDK.
+The regular entry point is `release-engine.yml` ("Release engine: all
+platforms"), which builds Android in parallel with the Apple XCFrameworks and
+attaches the verified bundle to the draft GitHub release; merging the
+`Package.swift` bump PR then publishes it from the release assets under the same
+version as the Swift package tag (see the root `CLAUDE.md`).
+`.github/workflows/release-android.yml` ("Release Android AAR (manual)") builds
+and publishes Android on its own, without a tag or GitHub release — e.g. after a
+failed or incorrect release. Published versions are immutable, so use a new
+version.
 
 For a local credentialed publication (normally only the workflow should do
 this), use:

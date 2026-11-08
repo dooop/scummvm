@@ -1,0 +1,156 @@
+name: "Reusable: build Apple XCFrameworks"
+
+# Builds the prebuilt ScummVM engine that consumers link instead of compiling ~7,700
+# upstream translation units themselves. Each framework is a dynamic library carrying
+# the third-party static libraries and the runtime payload, so consumers need neither
+# the submodule nor the 24 dependency XCFrameworks.
+#
+# Uploads dist/ (the three XCFramework zips, checksums.txt, SOURCES.txt) as the
+# "apple-xcframeworks" artifact of the calling run; publishing is release-draft.yml's job.
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+env:
+  # Same pinning rationale as ci.yml: non-default Xcode installs on macos-15 have been
+  # observed missing iOS/tvOS platform support.
+  XCODE_VERSION: "16.4"
+
+jobs:
+  build-slice:
+    name: Build ${{ matrix.slice }}
+    runs-on: macos-15
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # x86_64 is deliberately absent: the engine does not build for it in this
+          # package, so simulator slices are arm64-only and require Apple Silicon hosts.
+          #
+          # tvOS slices build from the ScummVMiOS scheme/source but publish under the
+          # ScummVMtvOS product name, so iOS and tvOS ship as two separate XCFrameworks
+          # instead of one that bundles both (see make-engine-xcframework.sh).
+          - slice: ios-arm64
+            scheme: ScummVMiOS
+            product: ScummVMiOS
+          - slice: ios-arm64-simulator
+            scheme: ScummVMiOS
+            product: ScummVMiOS
+          - slice: tvos-arm64
+            scheme: ScummVMiOS
+            product: ScummVMtvOS
+          - slice: tvos-arm64-simulator
+            scheme: ScummVMiOS
+            product: ScummVMtvOS
+          - slice: macos-arm64
+            scheme: ScummVMmacOS
+            product: ScummVMmacOS
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_${{ env.XCODE_VERSION }}.app
+
+      - name: Require Apple Silicon
+        run: test "$(uname -m)" = arm64
+
+      - name: Resolve package dependencies
+        env:
+          SCUMMVM_BUILD_FROM_SOURCE: "1"
+        run: swift package resolve
+
+      - name: Build slice
+        run: |
+          scripts/build-engine-slice.sh \
+            "${{ matrix.scheme }}" \
+            "${{ matrix.slice }}" \
+            "slices/${{ matrix.slice }}" \
+            "${{ matrix.product }}"
+
+      - name: Pack slice
+        # upload-artifact dereferences symlinks, which would flatten the macOS
+        # versioned framework layout into duplicated directories. Tar preserves it.
+        run: tar -cf "slice-${{ matrix.slice }}.tar" -C slices "${{ matrix.slice }}"
+
+      - name: Upload slice
+        uses: actions/upload-artifact@v7
+        with:
+          name: slice-${{ matrix.slice }}
+          path: slice-${{ matrix.slice }}.tar
+          retention-days: 5
+
+  assemble:
+    name: Assemble and validate XCFrameworks
+    needs: build-slice
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_${{ env.XCODE_VERSION }}.app
+
+      - name: Require Apple Silicon
+        run: test "$(uname -m)" = arm64
+
+      - name: Download slices
+        uses: actions/download-artifact@v8
+        with:
+          pattern: slice-*
+          path: downloads
+          merge-multiple: true
+
+      - name: Unpack slices
+        run: |
+          mkdir -p slices
+          for tarball in downloads/*.tar; do tar -xf "$tarball" -C slices; done
+          ls -la slices
+
+      - name: Create XCFrameworks
+        run: scripts/make-engine-xcframework.sh slices dist
+
+      - name: Validate local binary frameworks
+        env:
+          SCUMMVM_ENGINE_ARTIFACTS_DIR: dist
+        run: |
+          swift package reset
+          for entry in \
+            "macos|macOS" \
+            "ios|iOS" \
+            "ios-simulator|iOS Simulator" \
+            "tvos|tvOS" \
+            "tvos-simulator|tvOS Simulator"; do
+            key="${entry%%|*}"
+            platform="${entry#*|}"
+            xcodebuild build \
+              -scheme ScummVM \
+              -destination "generic/platform=${platform}" \
+              -derivedDataPath ".build/binary-validation-${key}" \
+              ARCHS=arm64 EXCLUDED_ARCHS=x86_64 \
+              CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO
+          done
+
+      - name: Upload XCFrameworks
+        uses: actions/upload-artifact@v7
+        with:
+          name: apple-xcframeworks
+          path: |
+            dist/ScummVMiOS.xcframework.zip
+            dist/ScummVMtvOS.xcframework.zip
+            dist/ScummVMmacOS.xcframework.zip
+            dist/checksums.txt
+            dist/SOURCES.txt
+          if-no-files-found: error
+          retention-days: 5

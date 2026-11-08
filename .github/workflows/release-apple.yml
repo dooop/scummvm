@@ -1,0 +1,47 @@
+name: "Release Apple XCFrameworks (manual)"
+
+# Apple-only variant of release-engine.yml: builds the iOS, tvOS and macOS
+# XCFrameworks, drafts the GitHub release and opens the "engine-bump/<tag>" PR.
+# Merging it creates the tag but publishes nothing to Maven, so this version will
+# have no Android AAR. Use release-engine.yml for regular releases.
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Version for the release tag (e.g. 0.8.0)"
+        required: true
+        type: string
+
+concurrency:
+  group: release-${{ inputs.tag }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate
+    uses: ./.github/workflows/release-validate.yml
+    permissions:
+      contents: write
+    with:
+      version: ${{ inputs.tag }}
+      github_release: true
+
+  apple:
+    name: Apple
+    needs: validate
+    uses: ./.github/workflows/release-apple-build.yml
+
+  draft:
+    name: Draft release
+    needs: apple
+    uses: ./.github/workflows/release-draft.yml
+    permissions:
+      contents: write
+      pull-requests: write
+    with:
+      tag: ${{ inputs.tag }}
+      include_android: false

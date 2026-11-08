@@ -1,6 +1,6 @@
 version: 2
 updates:
-  # Keep CI workflow actions up to date (ci.yml, release-engine.yml).
+  # Keep CI and release workflow actions up to date (.github/workflows/*.yml).
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:

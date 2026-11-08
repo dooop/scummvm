@@ -1,10 +1,10 @@
 name: Finalize engine release
 
-# Completes the flow started by release-engine.yml: once its "engine-bump/<tag>"
-# PR merges, the Package.swift commit pointing at the draft release's assets is
-# on main, so it's now safe to publish the draft (which creates the real git tag,
-# at the merge commit) and to publish the matching Android AAR under the same
-# version via the shared release-android-publish.yml workflow.
+# Completes a release drafted by release-engine.yml or release-apple.yml: once its
+# "engine-bump/<tag>" PR merges, publishes the draft - creating the tag at the PR's
+# head commit, which is exactly the commit the artifacts were built from plus the
+# Package.swift bump - and, if the draft carries an Android bundle, publishes that
+# already verified bundle to Maven under the same version.
 
 on:
   pull_request:
@@ -14,19 +14,28 @@ concurrency:
   group: release-engine-finalize-${{ github.event.pull_request.head.ref }}
   cancel-in-progress: false
 
+permissions:
+  contents: read
+
 jobs:
   finalize:
     name: Publish release and tag
-    if: github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'engine-bump/')
+    if: >-
+      github.event.pull_request.merged == true &&
+      startsWith(github.event.pull_request.head.ref, 'engine-bump/') &&
+      github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
       contents: write
     outputs:
       tag: ${{ steps.tag.outputs.value }}
+      android: ${{ steps.check.outputs.android }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
       - name: Resolve tag
         id: tag
@@ -34,19 +43,43 @@ jobs:
           HEAD_REF: ${{ github.event.pull_request.head.ref }}
         run: echo "value=${HEAD_REF#engine-bump/}" >> "$GITHUB_OUTPUT"
 
-      - name: Publish draft release at merge commit
+      - name: Check the bump commit matches the built commit
+        id: check
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.tag.outputs.value }}
-          MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
-        run: gh release edit "$TAG" --target "$MERGE_SHA" --draft=false
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          # With squash or rebase merges the head commit is not on the base branch.
+          git fetch --no-tags origin "refs/pull/${PR_NUMBER}/head"
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" \
+            --pattern release-provenance.txt --dir "$RUNNER_TEMP"
+          SOURCE="$(sed -n 's/^source_commit=//p' "${RUNNER_TEMP}/release-provenance.txt")"
+          changed="$(git diff --name-only "$SOURCE" "$HEAD_SHA")"
+          if [ "$changed" != "Package.swift" ]; then
+            echo "::error::engine-bump/${TAG} differs from the built commit ${SOURCE} in more than Package.swift:"
+            echo "$changed"
+            echo "Not tagging. Delete the draft release and run the release workflow again."
+            exit 1
+          fi
+          echo "android=$(sed -n 's/^android=//p' "${RUNNER_TEMP}/release-provenance.txt")" >> "$GITHUB_OUTPUT"
+
+      - name: Publish draft release at the bump commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.tag.outputs.value }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --target "$HEAD_SHA" --draft=false
 
   publish-android:
     name: Publish matching Android AAR
     needs: finalize
+    if: needs.finalize.outputs.android == 'true'
     uses: ./.github/workflows/release-android-publish.yml
     permissions:
       contents: read
       packages: write
     with:
       version: ${{ needs.finalize.outputs.tag }}
+      release_tag: ${{ needs.finalize.outputs.tag }}

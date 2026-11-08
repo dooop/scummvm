@@ -87,13 +87,15 @@ Add it as a Swift Package dependency and build for your platform target. SwiftPM
    ```
 
 ## Releasing the prebuilt engine
-[`release-engine.yml`](../.github/workflows/release-engine.yml) builds all five slices in parallel, assembles the three XCFrameworks, publishes them as **draft** release assets and opens a PR bumping `engineBinaryBaseURL` plus all three checksums in `../Package.swift`. Run it after any change to engine sources, overrides, glue or engine build flags — otherwise consumers keep linking the previous engine.
+[`release-engine.yml`](../.github/workflows/release-engine.yml) ("Release engine: all platforms") builds all five Apple slices and the Android AAR in parallel from the same commit, assembles and validates the three XCFrameworks and the AAR, and only if every platform succeeds publishes them as **draft** release assets and opens a PR bumping `engineBinaryBaseURL` plus all three checksums in `../Package.swift`. Run it after any change to engine sources, overrides, glue or engine build flags — otherwise consumers keep linking the previous engine. It only runs from the default branch, and it refuses a version whose tag, release or bump branch already exists.
 
 ```sh
 gh workflow run release-engine.yml -f tag=0.7.0
 ```
 
-The release stays a draft — and its git tag does not exist yet — until the bump PR merges. [`release-engine-finalize.yml`](../.github/workflows/release-engine-finalize.yml) then publishes the draft at the merge commit (so the tag always has a matching `Package.swift`) and, via the reusable [`release-android-publish.yml`](../.github/workflows/release-android-publish.yml) workflow, automatically publishes the Android AAR under the same version.
+The release stays a draft — and its git tag does not exist yet — until the bump PR merges. [`release-engine-finalize.yml`](../.github/workflows/release-engine-finalize.yml) then publishes the draft with the tag on the PR's head commit — exactly the built commit plus the `Package.swift` bump; it refuses if the branch gained other changes — and publishes the already verified Android bundle from the release assets to Maven under the same version, without rebuilding it.
+
+[`release-apple.yml`](../.github/workflows/release-apple.yml) ("Release Apple XCFrameworks (manual)") is the same flow without Android: the tag and release are created on merge, but nothing goes to Maven. [`release-android.yml`](../.github/workflows/release-android.yml) is the Android-only counterpart (see `android/README.md`). All three are `workflow_dispatch`-only.
 
 The scripts it drives ([`scripts/build-engine-slice.sh`](../scripts/build-engine-slice.sh), [`scripts/make-engine-xcframework.sh`](../scripts/make-engine-xcframework.sh)) also run standalone from the repository root. Each release carries a `SOURCES.txt` naming the exact upstream and wrapper commits the binaries were built from, which is what the GPL requires when distributing binaries.
 

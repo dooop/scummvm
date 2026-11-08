@@ -1,235 +1,58 @@
-name: Release engine XCFrameworks
+name: "Release engine: all platforms (Apple + Android)"
 
-# Builds the prebuilt ScummVM engine that consumers link instead of compiling ~7,700
-# upstream translation units themselves, and publishes it as GitHub Release assets.
-# Each framework is a dynamic library carrying the third-party static libraries and the
-# runtime payload, so consumers need neither the submodule nor the 24 dependency
-# XCFrameworks.
+# The regular release: one manual run builds and verifies the Apple XCFrameworks and
+# the Android AAR in parallel from the same commit. Only if both succeed does it
+# create a draft GitHub release carrying both and open the "engine-bump/<tag>" PR.
+# Merging that PR (release-engine-finalize.yml) creates the tag and publishes the
+# release and the Maven package - nothing is public before then, so a failing
+# platform never leaves a half-published version behind.
 #
-# This job only creates a DRAFT release and uploads assets to it, then opens a PR
-# bumping engineBinaryBaseURL and all three checksums in Package.swift. A draft
-# release reserves the tag name without creating the actual git tag, so the tag
-# never points at a commit whose Package.swift is stale. release-engine-finalize.yml
-# publishes the draft (which creates the real tag, at the bump PR's merge commit)
-# once that PR merges, and automatically publishes the matching Android AAR.
+# Single-platform alternatives: release-apple.yml, release-android.yml.
 
 on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Release tag to create (e.g. 0.7.0)"
+        description: "Version for the release tag and Maven package (e.g. 0.8.0)"
         required: true
-      bump_manifest:
-        description: "Open a PR bumping Package.swift to this release"
-        type: boolean
-        default: true
+        type: string
 
 concurrency:
-  group: release-engine-${{ github.ref }}
+  group: release-${{ inputs.tag }}
   cancel-in-progress: false
 
-env:
-  # Same pinning rationale as ci.yml: non-default Xcode installs on macos-15 have been
-  # observed missing iOS/tvOS platform support.
-  XCODE_VERSION: "16.4"
+permissions:
+  contents: read
 
 jobs:
-  build-slice:
-    name: Build ${{ matrix.slice }}
-    runs-on: macos-15
-    timeout-minutes: 180
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          # x86_64 is deliberately absent: the engine does not build for it in this
-          # package, so simulator slices are arm64-only and require Apple Silicon hosts.
-          #
-          # tvOS slices build from the ScummVMiOS scheme/source but publish under the
-          # ScummVMtvOS product name, so iOS and tvOS ship as two separate XCFrameworks
-          # instead of one that bundles both (see make-engine-xcframework.sh).
-          - slice: ios-arm64
-            scheme: ScummVMiOS
-            product: ScummVMiOS
-          - slice: ios-arm64-simulator
-            scheme: ScummVMiOS
-            product: ScummVMiOS
-          - slice: tvos-arm64
-            scheme: ScummVMiOS
-            product: ScummVMtvOS
-          - slice: tvos-arm64-simulator
-            scheme: ScummVMiOS
-            product: ScummVMtvOS
-          - slice: macos-arm64
-            scheme: ScummVMmacOS
-            product: ScummVMmacOS
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-        with:
-          submodules: recursive
-          fetch-depth: 0
+  validate:
+    name: Validate
+    uses: ./.github/workflows/release-validate.yml
+    permissions:
+      contents: write
+    with:
+      version: ${{ inputs.tag }}
+      github_release: true
 
-      - name: Select Xcode
-        run: sudo xcode-select -s /Applications/Xcode_${{ env.XCODE_VERSION }}.app
+  apple:
+    name: Apple
+    needs: validate
+    uses: ./.github/workflows/release-apple-build.yml
 
-      - name: Require Apple Silicon
-        run: test "$(uname -m)" = arm64
+  android:
+    name: Android
+    needs: validate
+    uses: ./.github/workflows/release-android-build.yml
+    with:
+      version: ${{ inputs.tag }}
 
-      - name: Resolve package dependencies
-        env:
-          SCUMMVM_BUILD_FROM_SOURCE: "1"
-        run: swift package resolve
-
-      - name: Build slice
-        run: |
-          scripts/build-engine-slice.sh \
-            "${{ matrix.scheme }}" \
-            "${{ matrix.slice }}" \
-            "slices/${{ matrix.slice }}" \
-            "${{ matrix.product }}"
-
-      - name: Pack slice
-        # upload-artifact dereferences symlinks, which would flatten the macOS
-        # versioned framework layout into duplicated directories. Tar preserves it.
-        run: tar -cf "slice-${{ matrix.slice }}.tar" -C slices "${{ matrix.slice }}"
-
-      - name: Upload slice
-        uses: actions/upload-artifact@v7
-        with:
-          name: slice-${{ matrix.slice }}
-          path: slice-${{ matrix.slice }}.tar
-          retention-days: 5
-
-  publish:
-    name: Publish XCFrameworks
-    needs: build-slice
-    runs-on: macos-15
-    timeout-minutes: 60
+  draft:
+    name: Draft release
+    needs: [apple, android]
+    uses: ./.github/workflows/release-draft.yml
     permissions:
       contents: write
       pull-requests: write
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-        with:
-          submodules: recursive
-          fetch-depth: 0
-
-      - name: Select Xcode
-        run: sudo xcode-select -s /Applications/Xcode_${{ env.XCODE_VERSION }}.app
-
-      - name: Require Apple Silicon
-        run: test "$(uname -m)" = arm64
-
-      - name: Download slices
-        uses: actions/download-artifact@v8
-        with:
-          pattern: slice-*
-          path: downloads
-          merge-multiple: true
-
-      - name: Unpack slices
-        run: |
-          mkdir -p slices
-          for tarball in downloads/*.tar; do tar -xf "$tarball" -C slices; done
-          ls -la slices
-
-      - name: Create XCFrameworks
-        run: scripts/make-engine-xcframework.sh slices dist
-
-      - name: Validate local binary frameworks
-        env:
-          SCUMMVM_ENGINE_ARTIFACTS_DIR: dist
-        run: |
-          swift package reset
-          for entry in \
-            "macos|macOS" \
-            "ios|iOS" \
-            "ios-simulator|iOS Simulator" \
-            "tvos|tvOS" \
-            "tvos-simulator|tvOS Simulator"; do
-            key="${entry%%|*}"
-            platform="${entry#*|}"
-            xcodebuild build \
-              -scheme ScummVM \
-              -destination "generic/platform=${platform}" \
-              -derivedDataPath ".build/binary-validation-${key}" \
-              ARCHS=arm64 EXCLUDED_ARCHS=x86_64 \
-              CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO
-          done
-
-      - name: Resolve release tag
-        id: tag
-        run: echo "value=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
-
-      - name: Create draft release and upload assets
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: ${{ steps.tag.outputs.value }}
-        run: |
-          UPSTREAM="$(git -C scummvm rev-parse HEAD)"
-          {
-            echo "Prebuilt ScummVM engine for scummvm."
-            echo
-            echo "Upstream commit: [\`${UPSTREAM}\`](https://github.com/scummvm/scummvm/commit/${UPSTREAM})"
-            echo
-            echo "Slices: ios-arm64, ios-arm64-simulator, tvos-arm64, tvos-arm64-simulator, macos-arm64."
-            echo "No x86_64 - simulator builds require an Apple Silicon host."
-            echo
-            echo '## Package.swift'
-            echo
-            echo '```swift'
-            echo "let engineBinaryBaseURL = \"https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}\""
-            while read -r module checksum; do
-              case "$module" in
-                ScummVMiOS)   echo "let engineChecksumiOS = \"${checksum}\"" ;;
-                ScummVMtvOS)  echo "let engineChecksumtvOS = \"${checksum}\"" ;;
-                ScummVMmacOS) echo "let engineChecksummacOS = \"${checksum}\"" ;;
-              esac
-            done < dist/checksums.txt
-            echo '```'
-            echo
-            echo "This release is a draft until [the version-bump PR](../../pulls?q=is%3Apr+head%3Aengine-bump%2F${TAG}) merges - the tag is not created until then."
-          } > release-notes.md
-
-          gh release create "$TAG" \
-            --draft \
-            --title "$TAG" \
-            --notes-file release-notes.md \
-            dist/ScummVMiOS.xcframework.zip \
-            dist/ScummVMtvOS.xcframework.zip \
-            dist/ScummVMmacOS.xcframework.zip \
-            dist/SOURCES.txt
-
-      - name: Bump Package.swift
-        if: inputs.bump_manifest
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: ${{ steps.tag.outputs.value }}
-        run: |
-          IOS_SUM="$(awk '$1=="ScummVMiOS"{print $2}' dist/checksums.txt)"
-          TVOS_SUM="$(awk '$1=="ScummVMtvOS"{print $2}' dist/checksums.txt)"
-          MAC_SUM="$(awk '$1=="ScummVMmacOS"{print $2}' dist/checksums.txt)"
-          BASE_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}"
-
-          /usr/bin/sed -i '' \
-            -e "s|^let engineBinaryBaseURL = .*|let engineBinaryBaseURL = \"${BASE_URL}\"|" \
-            -e "s|^let engineChecksumiOS = .*|let engineChecksumiOS = \"${IOS_SUM}\"|" \
-            -e "s|^let engineChecksumtvOS = .*|let engineChecksumtvOS = \"${TVOS_SUM}\"|" \
-            -e "s|^let engineChecksummacOS = .*|let engineChecksummacOS = \"${MAC_SUM}\"|" \
-            Package.swift
-
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          BRANCH="engine-bump/${TAG}"
-          git checkout -b "$BRANCH"
-          git add Package.swift
-          git commit -m "chore: point Package.swift at engine release ${TAG}"
-          git push origin "$BRANCH"
-          PR_BODY="$(printf 'Automated bump from the engine release pipeline. Upstream commit: `%s`.\n\nMerging this PR publishes the draft `%s` release (creating the real tag at the merge commit) and automatically publishes the matching `io.github.dooop:scummvm:%s` Android AAR - see release-engine-finalize.yml.' "$(git -C scummvm rev-parse HEAD)" "$TAG" "$TAG")"
-          gh pr create \
-            --title "chore: point Package.swift at engine release ${TAG}" \
-            --body "$PR_BODY" \
-            --base "${{ github.event.repository.default_branch }}" \
-            --head "$BRANCH"
+    with:
+      tag: ${{ inputs.tag }}
+      include_android: true

@@ -1,0 +1,66 @@
+name: "Reusable: validate release version"
+
+# Fails a release run before any of its multi-hour builds start: the version must be
+# well-formed, the run must come from the default branch, and nothing may already
+# be published under that version.
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: "Release tag / Maven version (for example 1.2.3)"
+        required: true
+        type: string
+      github_release:
+        description: "Also require that no git tag, GitHub release or engine-bump branch exists"
+        required: true
+        type: boolean
+
+# Write only because draft releases are invisible to a read-only token, and an
+# existing draft would otherwise go unnoticed until the very end of the run.
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    name: Validate ${{ inputs.version }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check version format
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z][0-9A-Za-z.-]*)?$ ]]; then
+            echo "::error::Invalid version '$VERSION' (expected for example 1.2.3 or 1.2.3-rc1, without a leading v)"
+            exit 1
+          fi
+
+      - name: Check branch
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          if [ "$GITHUB_REF" != "refs/heads/${DEFAULT_BRANCH}" ]; then
+            echo "::error::Releases must be started from ${DEFAULT_BRANCH}, not ${GITHUB_REF}"
+            exit 1
+          fi
+
+      - name: Check tag, release and bump branch are unused
+        if: inputs.github_release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          remote="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          if [ -n "$(git ls-remote --tags "$remote" "refs/tags/${VERSION}")" ]; then
+            echo "::error::Tag ${VERSION} already exists"
+            exit 1
+          fi
+          if gh release view "$VERSION" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            echo "::error::A release (possibly a draft) named ${VERSION} already exists; delete it or pick a new version"
+            exit 1
+          fi
+          if [ -n "$(git ls-remote --heads "$remote" "refs/heads/engine-bump/${VERSION}")" ]; then
+            echo "::error::Branch engine-bump/${VERSION} already exists"
+            exit 1
+          fi

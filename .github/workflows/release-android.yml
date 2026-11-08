@@ -1,22 +1,46 @@
-name: Release Android AAR (manual)
+name: "Release Android AAR (manual)"
 
-# Manual/out-of-band entry point for release-android-publish.yml. Normal Android
-# releases happen automatically from release-engine-finalize.yml, with the
-# version taken from the Swift package tag - use this only to republish Android
-# on its own (e.g. after a failed or incorrect automatic release). Published
-# versions are immutable, so pick a new version.
+# Android-only variant of release-engine.yml: builds and verifies the AAR, then
+# publishes it straight to GitHub Packages. No git tag, GitHub release or
+# Package.swift bump is created. Published Maven versions are immutable, so pick a
+# version that release-engine.yml will not use later. Use release-engine.yml for
+# regular releases.
 
 on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Maven version to publish (for example 1.2.3)"
+        description: "Maven version to publish (e.g. 0.8.1)"
         required: true
         type: string
 
+concurrency:
+  group: release-${{ inputs.version }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
 jobs:
+  validate:
+    name: Validate
+    uses: ./.github/workflows/release-validate.yml
+    permissions:
+      contents: write
+    with:
+      version: ${{ inputs.version }}
+      github_release: false
+
+  android:
+    name: Android
+    needs: validate
+    uses: ./.github/workflows/release-android-build.yml
+    with:
+      version: ${{ inputs.version }}
+
   publish:
     name: Publish
+    needs: android
     uses: ./.github/workflows/release-android-publish.yml
     permissions:
       contents: read

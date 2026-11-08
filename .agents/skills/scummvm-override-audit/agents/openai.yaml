@@ -1,0 +1,4 @@
+interface:
+  display_name: "ScummVM Override Audit"
+  short_description: "Find obsolete or drifted engine overrides."
+  default_prompt: "Use $scummvm-override-audit to check every file in swift/Sources/ScummVMEngineOverrides/ against upstream, remove obsolete overrides and re-sync drifted ones."

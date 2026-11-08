@@ -122,6 +122,7 @@ When updating `scummvm` to a newer upstream commit: record the current SHA first
 |---|---|
 | Build failure (compile/link/header/macro) | `scummvm-build-triage` |
 | Adding/updating an override in `swift/Sources/ScummVMEngineOverrides/` | `scummvm-override-workflow` |
+| Auditing overrides for obsolescence or upstream drift (after every submodule bump) | `scummvm-override-audit` |
 | Editing lifecycle/bridge code in `swift/Sources/ScummVM/`, `ScummVMiOS/`, `ScummVMmacOS/`, `ScummVMtvOS/` | `objcxx-bridge-lifecycle` |
 | Editing `plugins_table.h` or `detection_table.h` | `plugins-table-maintainer` |
 | Reviewing/planning architecture-level changes | `scummvm-engine-architecture` |

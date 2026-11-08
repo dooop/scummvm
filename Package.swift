@@ -119,9 +119,6 @@ let engineTargets: [Target] =
                 "ScummVMEngine/gui/recorderdialog.cpp",
                 // Override to support builds without ENABLE_EVENTRECORDER (e.g. iOS/tvOS)
                 "ScummVMEngine/gui/onscreendialog.cpp",
-                // Override: fixes a U32String/String comparison mismatch (pre-existing
-                // upstream bug, unrelated to this package's configuration)
-                "ScummVMEngine/gui/downloaddlcsdialog.cpp",
                 "ScummVMEngine/common/updates.cpp",
                 "ScummVMEngine/backends/taskbar",
                 "ScummVMEngine/backends/fs/android",
@@ -158,6 +155,8 @@ let engineTargets: [Target] =
                 "ScummVMEngine/engines/ags/lib/allegro/surface_avx2.cpp",
                 "ScummVMEngine/engines/ags/lib/allegro/fmaths.cpp",
                 "ScummVMEngine/engines/titanic/game/transport/exit_pellerator.cpp",
+                // Not in titanic's module.mk; its header is a stale copy of pet_element.h
+                "ScummVMEngine/engines/titanic/game/pet/pet_val_base.cpp",
                 // ARM32 assembly – incompatible with arm64
                 "ScummVMEngine/graphics/scaler/scale2xARM.s",
                 "ScummVMEngine/graphics/scaler/Normal2xARM.s",
@@ -308,7 +307,6 @@ let engineTargets: [Target] =
                 "ScummVMEngine/engines/bagel/hodjnpodj/pdq/main.cpp",
                 "ScummVMEngine/engines/bagel/hodjnpodj/pdq/convert.cpp",
                 "ScummVMEngineOverrides/backends/platform/ios7/ios7_video.mm",
-                "ScummVMEngineOverrides/backends/platform/ios7/ios7_osys_video.mm",
                 "ScummVMEngineOverrides/backends/platform/ios7/ios7_osys_main.cpp",
                 "ScummVMEngineOverrides/backends/platform/ios7/ios7_osys_events.cpp",
                 "ScummVMEngineOverrides/backends/platform/ios7/ios7_osys_sound.cpp",
@@ -828,7 +826,7 @@ let engineTargets: [Target] =
                 "ScummVMEngineOverrides/backends/platform/ios7/ios7_osys_main.cpp",
                 "ScummVMEngineOverrides/backends/platform/ios7/ios7_osys_events.cpp",
                 "ScummVMEngineOverrides/backends/platform/ios7/ios7_osys_sound.cpp",
-                "ScummVMEngineOverrides/backends/platform/ios7/ios7_osys_video.mm",
+                "ScummVMEngine/backends/platform/ios7/ios7_osys_video.mm",
                 "ScummVMEngine/backends/platform/ios7/ios7_osys_misc.mm",
                 "ScummVMEngine/backends/platform/ios7/ios7_misc.mm",
                 "ScummVMEngine/backends/platform/ios7/ios7_options.mm",

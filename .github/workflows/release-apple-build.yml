@@ -65,7 +65,9 @@ jobs:
       - name: Resolve package dependencies
         env:
           SCUMMVM_BUILD_FROM_SOURCE: "1"
-        run: swift package resolve
+        run: |
+          scripts/prefetch-binary-artifacts.sh
+          swift package resolve
 
       - name: Build slice
         run: |
